@@ -1,0 +1,6 @@
+build*/
+.DS_Store
+.idea/
+.vscode/
+pluginval-results/
+.claude/worktrees/

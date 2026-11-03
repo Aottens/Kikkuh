@@ -22,7 +22,7 @@ Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03 (owner,
 
 | Id | Task (one sentence, verifiable) | Spec ids | Size | Status |
 | --- | --- | --- | --- | --- |
-| VS1-01 | BODY's wave, tune, pitch and amp knobs are host parameters on a smoothed voice that replaces the test kick, and tests measure each one's effect. | BODY-01..04, ENG-01, 06 | L | gate3: `tests/manual/vs1-01-body-knobs.md` |
+| VS1-01 | BODY's wave, tune, pitch and amp knobs are host parameters on a smoothed voice that replaces the test kick, and tests measure each one's effect. | BODY-01..04, ENG-01, 06 | L | done (2026-11-03, #2) |
 | VS1-02 | A `kikkuh-render` command writes a WAV for given parameter values, so a sound can be measured and shared without a DAW. | HARN-04 | S | todo |
 | VS1-08 | Three reference kicks chosen by the owner are measured (sweep, harmonics, first milliseconds), and a written comparison says what BODY lacks. | IDEA-02, CORE-01 | M | todo |
 | VS1-09 | The owner chooses saturation, filter and curve variants and new defaults in blind, level-matched listening rounds, and the choices are written down as criteria for VS1-03. | IDEA-02 | L | todo |

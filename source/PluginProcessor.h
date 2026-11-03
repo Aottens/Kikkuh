@@ -8,6 +8,8 @@ class PluginProcessor : public juce::AudioProcessor
 public:
     PluginProcessor();
 
+    static int noteFromText (const juce::String& text);
+
     void prepareToPlay (double sampleRate, int) override;
     void releaseResources() override {}
     bool isBusesLayoutSupported (const BusesLayout& layouts) const override;

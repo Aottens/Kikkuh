@@ -4,10 +4,10 @@
 #include <functional>
 #include <vector>
 
-// Plays one note through a plugin offline, block by block, as a host would, and returns the left
-// channel. Block sizes cycle through `blockSizes`, so tests also cover uneven host blocks.
+// Plays one note through a plugin offline, block by block, as a host would, and returns both
+// channels. kikkuh-render (HARN-04) uses this too, so the tests measure what it writes. Block sizes cycle through `blockSizes`, so tests also cover uneven host blocks.
 // `beforeBlock`, if given, runs before every block with the seconds rendered so far: a knob move.
-inline std::vector<float> renderNote (juce::AudioProcessor& plugin, double sampleRate, double seconds,
+inline juce::AudioBuffer<float> renderNoteStereo (juce::AudioProcessor& plugin, double sampleRate, double seconds,
                                       int noteOnSample = 0, int note = 36, float velocity = 1.0f,
                                       std::vector<int> blockSizes = { 256 },
                                       const std::function<void (double)>& beforeBlock = {})
@@ -19,14 +19,13 @@ inline std::vector<float> renderNote (juce::AudioProcessor& plugin, double sampl
     plugin.prepareToPlay (sampleRate, largest);
 
     const auto total = static_cast<int> (seconds * sampleRate);
-    std::vector<float> out;
-    out.reserve (static_cast<size_t> (total));
+    juce::AudioBuffer<float> out (2, total);
     juce::AudioBuffer<float> buffer (2, largest);
     juce::MidiBuffer midi;
 
-    for (size_t block = 0; static_cast<int> (out.size()) < total; ++block)
+    int done = 0;
+    for (size_t block = 0; done < total; ++block)
     {
-        const auto done = static_cast<int> (out.size());
         const auto size = juce::jmin (blockSizes[block % blockSizes.size()], total - done);
         if (beforeBlock)
             beforeBlock (done / sampleRate);
@@ -36,7 +35,19 @@ inline std::vector<float> renderNote (juce::AudioProcessor& plugin, double sampl
 
         buffer.setSize (2, size, false, false, true);
         plugin.processBlock (buffer, midi);
-        out.insert (out.end(), buffer.getReadPointer (0), buffer.getReadPointer (0) + size);
+        for (int ch = 0; ch < 2; ++ch)
+            out.copyFrom (ch, done, buffer, ch, 0, size);
+        done += size;
     }
     return out;
+}
+
+// The left channel of renderNoteStereo.
+inline std::vector<float> renderNote (juce::AudioProcessor& plugin, double sampleRate, double seconds,
+                                      int noteOnSample = 0, int note = 36, float velocity = 1.0f,
+                                      std::vector<int> blockSizes = { 256 },
+                                      const std::function<void (double)>& beforeBlock = {})
+{
+    const auto out = renderNoteStereo (plugin, sampleRate, seconds, noteOnSample, note, velocity, std::move (blockSizes), beforeBlock);
+    return { out.getReadPointer (0), out.getReadPointer (0) + out.getNumSamples() };
 }

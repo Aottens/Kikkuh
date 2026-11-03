@@ -68,10 +68,18 @@ endif()
 
 target_link_libraries(Kikkuh PRIVATE KikkuhCode)
 
+# HARN-04: renders a kick to a WAV without a DAW. A development tool, not shipped.
+add_executable(kikkuh-render tools/kikkuh-render.cpp)
+target_compile_definitions(kikkuh-render PRIVATE $<TARGET_PROPERTY:Kikkuh,COMPILE_DEFINITIONS>)
+target_include_directories(kikkuh-render PRIVATE tests)
+target_link_libraries(kikkuh-render PRIVATE KikkuhCode)
+
 enable_testing()
 file(GLOB_RECURSE KIKKUH_TESTS CONFIGURE_DEPENDS tests/*.cpp)
 add_executable(Tests ${KIKKUH_TESTS})
 target_compile_definitions(Tests PRIVATE $<TARGET_PROPERTY:Kikkuh,COMPILE_DEFINITIONS>)
+target_compile_definitions(Tests PRIVATE "KIKKUH_RENDER_PATH=\"$<TARGET_FILE:kikkuh-render>\"")
 target_link_libraries(Tests PRIVATE KikkuhCode Catch2::Catch2WithMain)
+add_dependencies(Tests kikkuh-render)
 include(${catch2_SOURCE_DIR}/extras/Catch.cmake)
 catch_discover_tests(Tests DISCOVERY_MODE PRE_TEST)

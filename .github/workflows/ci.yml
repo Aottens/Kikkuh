@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: build, test, validate (macOS universal)
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: build/_deps
+          key: deps-${{ hashFiles('CMakeLists.txt') }}
+      - run: brew install ninja
+      - run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release "-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64"
+      # 3 cores on the runner; unbounded JUCE builds run out of memory.
+      - run: cmake --build build --parallel 3
+      - run: ctest --test-dir build --output-on-failure
+      - name: universal binary (BUILD-03)
+        run: lipo -archs build/Kikkuh_artefacts/Release/VST3/Kikkuh.vst3/Contents/MacOS/Kikkuh | grep -w x86_64
+      - run: scripts/validate.sh build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Kikkuh-plugins
+          path: |
+            build/Kikkuh_artefacts/Release/VST3/Kikkuh.vst3
+            build/Kikkuh_artefacts/Release/AU/Kikkuh.component
+            build/Kikkuh_artefacts/Release/CLAP/Kikkuh.clap
+          retention-days: 30
+
+  asan:
+    name: tests under AddressSanitizer (macOS arm64)
+    runs-on: macos-14
+    env:
+      ASAN_OPTIONS: halt_on_error=1:abort_on_error=1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: build-asan/_deps
+          key: deps-asan-${{ hashFiles('CMakeLists.txt') }}
+      - run: brew install ninja
+      - run: cmake -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=Debug -DKIKKUH_ASAN=ON
+      - run: cmake --build build-asan --target Tests --parallel 3
+      - run: ctest --test-dir build-asan --output-on-failure
+
+  windows:
+    name: build and test (Windows x64, BUILD-04)
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - run: cmake -B build -DKIKKUH_COPY_PLUGIN=OFF
+      - run: cmake --build build --config Release --target Tests --parallel 3
+      - run: ctest --test-dir build -C Release --output-on-failure

@@ -18,10 +18,14 @@ Slices below 0 are a proposal: their `Builds:` lines and full criteria come when
 
 ## Slice 1 — a kick you can shape with knobs
 
+Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03 (owner, 2026-11-03). The rest are proposed when they start.
+
 | Id | Task (one sentence, verifiable) | Spec ids | Size | Status |
 | --- | --- | --- | --- | --- |
-| VS1-01 | BODY's wave, tune, pitch and amp knobs are host parameters on a smoothed voice that replaces the test kick, and tests measure each one's effect. | BODY-01..04, ENG-01, 06 | L | todo |
+| VS1-01 | BODY's wave, tune, pitch and amp knobs are host parameters on a smoothed voice that replaces the test kick, and tests measure each one's effect. | BODY-01..04, ENG-01, 06 | L | done (2026-11-03, #2) |
 | VS1-02 | A `kikkuh-render` command writes a WAV for given parameter values, so a sound can be measured and shared without a DAW. | HARN-04 | S | todo |
+| VS1-08 | Three reference kicks chosen by the owner are measured (sweep, harmonics, first milliseconds), and a written comparison says what BODY lacks. | IDEA-02, CORE-01 | M | todo |
+| VS1-09 | The owner chooses saturation, filter and curve variants and new defaults in blind, level-matched listening rounds, and the choices are written down as criteria for VS1-03. | IDEA-02 | L | todo |
 | VS1-03 | BODY's filter and drive work, and a test shows drive at full stays below an agreed alias level. | BODY-05, 06 | M | todo |
 | VS1-04 | With the tail anchor on, changing pitch knobs leaves the tail sample-identical in a test; off restores classic behaviour. | BODY-07 | M | todo |
 | VS1-05 | Velocity, key tracking and retrigger work, and a test shows no step above an agreed size when a kick retriggers at 200 BPM. | PLAY-01..03 | M | todo |

@@ -4,9 +4,10 @@ namespace
 {
 constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
                                      "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape" };
+}
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
-int noteFromText (const juce::String& text)
+int PluginProcessor::noteFromText (const juce::String& text)
 {
     const auto s = text.trim();
     const auto letter = juce::String ("CDEFGAB").indexOfChar (juce::CharacterFunctions::toUpperCase (s[0]));
@@ -22,7 +23,6 @@ int noteFromText (const juce::String& text)
         rest = rest.substring (1);
     }
     return (rest.getIntValue() + 2) * 12 + note;
-}
 }
 
 PluginProcessor::PluginProcessor()
@@ -59,7 +59,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
         juce::ParameterID { "body_tune", 1 }, "Tune", 24, 60, 33,
         juce::AudioParameterIntAttributes()
             .withStringFromValueFunction ([] (int v, int) { return juce::String (dsp::bodyNoteName (v)); })
-            .withValueFromStringFunction (noteFromText)));
+            .withValueFromStringFunction (&PluginProcessor::noteFromText)));
     add ("body_pitch_amount", "Pitch Amount", ranged (0.0f, 72.0f), 36.0f, "st", 1);
     add ("body_pitch_decay", "Pitch Decay", ranged (1.0f, 1000.0f, 60.0f), 100.0f, "ms", 1);
     add ("body_pitch_shape", "Pitch Shape", ranged (-100.0f, 100.0f), 0.0f, "%", 0);

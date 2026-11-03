@@ -15,6 +15,8 @@ host's generic editor. Filter, drive and the real panel come next. Plan in `BACK
 - Tune sets the note the kick lands on; Pitch Amount, Decay and Shape set the sweep down to it.
 - Attack, Hold, Decay and Shape set the level.
 - All knobs are automatable and smoothed, and they come back with your project.
+- `kikkuh-render` writes a kick to a WAV without a DAW, for example
+  `build/kikkuh-render --out kick.wav body_tune=F#0 body_pitch_amount=60`.
 
 ## Build and run
 

@@ -11,7 +11,8 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 
 ## Next
 1. VS1-02: `kikkuh-render`.
-2. VS1-03: BODY's filter and drive.
+2. VS1-08 and VS1-09: the sound engine round, chosen by the owner's ears (IDEA-02).
+3. VS1-03: BODY's filter and drive, built on those choices.
 
 ## Waiting for a run in Bitwig (gate 3, owner)
 - VS1-01: `tests/manual/vs1-01-body-knobs.md`
@@ -20,5 +21,5 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 - none
 
 ## Owner decisions open
-- Three reference kicks for CORE-01, needed by VS1-07.
+- Three reference kicks, needed by VS1-08 and CORE-01.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

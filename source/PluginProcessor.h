@@ -1,6 +1,6 @@
 #pragma once
 
-#include <dsp/TestVoice.h>
+#include <dsp/BodyVoice.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
 class PluginProcessor : public juce::AudioProcessor
@@ -31,10 +31,20 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+    // BODY-02d: the note the tail lands on, for the panel (VS1-06). Message thread.
+    double getTailNote() const { return dsp::bodyTailNote (readParams()); }
+    juce::String getTailReadout() const { return dsp::bodyNoteReadout (getTailNote()); }
+
 private:
     static constexpr int stateVersion = 1;
 
-    dsp::TestVoice voice;
+    static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
+    dsp::BodyParams readParams() const;
+    void migrate (juce::XmlElement& xml, int fromVersion);
+
+    juce::AudioProcessorValueTreeState apvts;
+    std::array<std::atomic<float>*, 9> raw {};
+    dsp::BodyVoice voice;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };

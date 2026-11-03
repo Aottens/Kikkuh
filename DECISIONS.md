@@ -4,6 +4,25 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-03 — BODY: finite curves, notes with C3 = 60, wavetables (owner approved the spec)
+
+**Decision:** Decay is the whole length of a curve `(1 - x)^k`, which arrives at exactly 0. Note
+names use MIDI 60 = C3. The oscillator reads band-limited wavetables built as sums of sines, with
+one level constant per wave.
+
+**Alternatives considered:** exponential curves with a time constant; C4 = 60; PolyBLEP.
+
+**Reasoning:** a finite curve lands exactly on Tune, so the tail has a defined start for the anchor
+of BODY-07. With C3 = 60, the PRD's "C1, F#0" are 65 and 46 Hz, real kick tails. Sums of sines start
+every wave at zero with the fundamental in phase, so morphing cannot cancel it and a sweep keeps its
+level. The cost: a square above about 6 kHz peaks up to 8 % over 1.0, reachable only with extreme
+Tune and Amount, and MASTER comes after it.
+
+**Reversal trigger:** the owner's Bitwig note names turn out not to be C3 = 60, or CORE-01 shows
+that Decay as a whole length feels wrong.
+
+---
+
 ## 2026-11-03 — A fixed test kick in the skeleton
 
 **Decision:** the skeleton plays a fixed sine sweep on every MIDI note (BUILD-06), not silence.

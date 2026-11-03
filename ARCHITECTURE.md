@@ -15,7 +15,7 @@ feeds RUMBLE, whose output joins before MASTER. The bus layout is decided before
 
 ## Layers
 - `source/dsp/`: plain C++, no JUCE, no I/O. Deterministic; tested with `tests/Render.h` through the
-  processor, or directly. `TestVoice.h` is a stand-in until BODY replaces it.
+  processor, or directly. `BodyVoice.h` is the kick's voice, `MorphOsc.h` its band-limited oscillator.
 - `source/PluginProcessor.*`: JUCE glue. Parameters, state, MIDI and play-head reading, calls into
   `dsp/`. Nothing here decides how a kick sounds.
 - `source/ui/` (from the first panel task): the editor. Reads state and sends parameter changes; no DSP.

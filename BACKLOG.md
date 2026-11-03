@@ -18,9 +18,11 @@ Slices below 0 are a proposal: their `Builds:` lines and full criteria come when
 
 ## Slice 1 — a kick you can shape with knobs
 
+Builds: VS1-01 alone (L). The rest are proposed when they start.
+
 | Id | Task (one sentence, verifiable) | Spec ids | Size | Status |
 | --- | --- | --- | --- | --- |
-| VS1-01 | BODY's wave, tune, pitch and amp knobs are host parameters on a smoothed voice that replaces the test kick, and tests measure each one's effect. | BODY-01..04, ENG-01, 06 | L | todo |
+| VS1-01 | BODY's wave, tune, pitch and amp knobs are host parameters on a smoothed voice that replaces the test kick, and tests measure each one's effect. | BODY-01..04, ENG-01, 06 | L | gate3: `tests/manual/vs1-01-body-knobs.md` |
 | VS1-02 | A `kikkuh-render` command writes a WAV for given parameter values, so a sound can be measured and shared without a DAW. | HARN-04 | S | todo |
 | VS1-03 | BODY's filter and drive work, and a test shows drive at full stays below an agreed alias level. | BODY-05, 06 | M | todo |
 | VS1-04 | With the tail anchor on, changing pitch knobs leaves the tail sample-identical in a test; off restores classic behaviour. | BODY-07 | M | todo |

@@ -9,4 +9,4 @@ Status: **built with VS0-01; owner review in its PR.**
 - **BUILD-03** CI builds a universal macOS binary (arm64 and x86_64) on every push and proves it with `lipo`.
 - **BUILD-04** CI builds and runs the tests on Windows x64 on every push, so the code stays portable.
 - **BUILD-05** Name, company and identifiers follow `DECISIONS.md`; no audio input, stereo output, MIDI input.
-- **BUILD-06** Until BODY lands, a MIDI note-on plays a fixed test kick, starting at the note's exact sample at any block size; without a note the output is silent.
+- **BUILD-06** A MIDI note-on plays a kick, starting at the note's exact sample at any block size; without a note the output is silent. The fixed test kick of VS0-01 was replaced by BODY in VS1-01.

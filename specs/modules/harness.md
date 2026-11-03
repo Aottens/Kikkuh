@@ -1,6 +1,6 @@
 # Module spec: harness (HARN)
 
-Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-03), built by VS1-02. HARN-05 and HARN-06 approved by the owner (2026-11-03), built by VS1-08.**
+Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-03), built by VS1-02. HARN-05 and HARN-06 approved by the owner (2026-11-03), built by VS1-08; the owner chose four references (2026-11-04).**
 
 ## Acceptance criteria
 
@@ -62,13 +62,17 @@ Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-
     -60 dB for good, and the nearest values of BODY's own curve (`specs/modules/body.md`): Tune, Pitch
     Amount, Pitch Decay and Pitch Shape from the sweep, Amp Decay and Amp Shape from the level, each
     with its remaining error in cents or dB. On a signal made with known values of that curve, the
-    fit gives those values back, within 10 % or 1 semitone.
+    fit gives those values back, within 10 % or 1 semitone. A click or a short glitch does not pull the fit: pitch
+    readings that stand far from their neighbours are left out, and the tool prints how many
+    (`fit_pitch_outliers`). The same values come back, within the same limits, from that signal with a
+    2 ms noise click louder than the kick and a 4 ms glitch in the tail. Found measuring the owner's
+    references: one click moved a fit by 14 semitones of Amount.
   - **HARN-05f** Stereo: the side level relative to the mid, over the whole kick and over 0-20 ms. A
     dual-mono file reads below -100 dB.
   - **HARN-05g** Errors: a missing or unreadable file, or no file named, exits non-zero with a message
     naming the input on stderr.
 
-- **HARN-06** The comparison: `docs/research/reference-kicks.md` holds, for each of the owner's three
+- **HARN-06** The comparison: `docs/research/reference-kicks.md` holds, for each of the owner's four
   references, its name, source, licence as far as known and SHA-256, the numbers of HARN-05 next to
   those of a `kikkuh-render` of the nearest BODY values, and the exact command of that render. A
   closing list says what BODY lacks. Every item has a measured number and is marked **reachable**

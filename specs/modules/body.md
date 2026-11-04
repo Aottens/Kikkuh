@@ -8,6 +8,7 @@ replaces the fixed test kick of BUILD-06.
 Time runs in seconds, so everything below holds from 44.1 to 192 kHz (ENG-04). Unless a criterion
 says otherwise, "level" is at velocity 127 with the other knobs at their defaults. Velocity scales
 the level linearly until PLAY-01 adds its knob, and every MIDI note plays the same kick (PLAY-02 off).
+BODY-01..04 describe the voice itself: since BODY-08 they are measured with Drive 0, Start 0 and Sweep 2 Amount 0.
 
 ## Parameters
 
@@ -18,9 +19,9 @@ automation is stored relative to the range.
 | --- | --- | --- | --- | --- |
 | `body_wave` | Wave | 0..3 (0 sine, 1 triangle, 2 saw, 3 square) | 0 | linear, continuous |
 | `body_tune` | Tune | C0..C3 (32.7..261.6 Hz), whole notes | A0 (55 Hz) | one step per semitone |
-| `body_pitch_amount` | Pitch Amount | 0..72 semitones | 36 | linear |
-| `body_pitch_decay` | Pitch Decay | 1..1000 ms | 100 ms | centre at 60 ms |
-| `body_pitch_shape` | Pitch Shape | -100..+100 % | 0 | linear |
+| `body_pitch_amount` | Pitch Amount | 0..72 semitones | 60 | linear |
+| `body_pitch_decay` | Pitch Decay | 1..1000 ms | 40 ms | centre at 60 ms |
+| `body_pitch_shape` | Pitch Shape | -100..+100 % | +30 | linear |
 | `body_amp_attack` | Attack | 0..50 ms | 0 ms | centre at 5 ms |
 | `body_amp_hold` | Hold | 0..500 ms | 0 ms | centre at 50 ms |
 | `body_amp_decay` | Amp Decay | 10..2000 ms | 400 ms | centre at 200 ms |
@@ -119,7 +120,7 @@ before-the-amp lost at 12 dB, and hard at 3 and 6 dB won over everything at 12 d
 
 | Id | Knob | Range | Default | Knob feel |
 | --- | --- | --- | --- | --- |
-| `body_drive` | Drive | 0..24 dB | 0 dB (6 dB with BODY-08) | linear |
+| `body_drive` | Drive | 0..24 dB | 6 dB (BODY-08) | linear |
 
 - **BODY-06a** Drive multiplies the signal after the amp and clips it at ±1. At 0 dB a signal below full scale
   stays within 0.01 dB of a render without Drive.
@@ -159,14 +160,16 @@ The owner's choice in round 8. The note and the amp stay as they are.
 - **BODY-08c** It ends without a click, with the sweep on: the largest step in its last 5 ms stays below that of a
   sine at full level.
 - **BODY-08d** A project saved before this change keeps the values it was saved with (ENG-06a), including the new
-  knobs, which take the value that leaves its sound as it was: Sweep 2 Amount 0, Start 0, Drive 0.
+  knobs, which take the value that leaves its sound as it was: Sweep 2 Amount 0, Start 0, Drive 0. A knob the project
+  did save keeps its value, so VS1-03's Drive stays. A VS0-01 project saved no knobs and has no sound of its own to keep,
+  so it takes the defaults, as ENG-06a says.
 - **BODY-08e** With the panel from VS1-06 the CORE-01 test runs on these defaults (VS1-07).
 
 ### BODY-09 A sweep in two stages (VS1-10)
 
 | Id | Knob | Range | Default | Knob feel |
 | --- | --- | --- | --- | --- |
-| `body_sweep2_amount` | Sweep 2 Amount | 0..24 semitones | 0 (6 with BODY-08) | linear |
+| `body_sweep2_amount` | Sweep 2 Amount | 0..24 semitones | 6 (BODY-08) | linear |
 | `body_sweep2_decay` | Sweep 2 Decay | 1..2000 ms | 300 ms | centre at 200 ms |
 
 - **BODY-09a** The pitch is `Tune + Amount * g(pitch) + Sweep 2 Amount * g(sweep 2)`, with `g` the curve of this module
@@ -181,7 +184,7 @@ The owner's choice in round 8. The note and the amp stay as they are.
 
 | Id | Knob | Range | Default | Knob feel |
 | --- | --- | --- | --- | --- |
-| `body_start` | Start | 0..90 degrees | 0 (90 with BODY-08) | linear |
+| `body_start` | Start | 0..90 degrees | 90 (BODY-08) | linear |
 
 - **BODY-10a** Start is the oscillator's phase at the note-on. At 90 with Attack 0 the first sample is at full level,
   and `step_1ms` is above -10 dB; at 0 it behaves as BODY-01c and BODY-04a say, which hold only for Start 0.
@@ -202,9 +205,9 @@ The owner's choice in round 8. The note and the amp stay as they are.
 - **ENG-01d** `processBlock` does not allocate while parameters change.
 - **ENG-01e** Each knob's text survives a round trip, as clap-validator demands: value to text, back to
   a value and to text again gives the same text. Times, semitones, Drive and Env Amount show one decimal,
-  Shape and Resonance whole percents, Cutoff whole Hz and Wave two decimals.
+  Shape and Resonance whole percents, Cutoff whole Hz, Start whole degrees and Wave two decimals.
 - **ENG-06a** The state restores all parameters. A state that lacks a parameter (an older version,
-  or a VS0-01 project) gives that parameter its default. The state keeps its version, and
+  or a VS0-01 project) gives that parameter its default, except where BODY-08d says otherwise. The state keeps its version, and
   `setStateInformation` runs saved states through a migration step that later versions can extend.
 - **ENG-06b** A test lists the ids as written above, so renaming one fails.
 - **ENG-03, ENG-04** hold with the new voice, also at non-default knob values.

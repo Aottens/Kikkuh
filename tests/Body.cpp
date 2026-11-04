@@ -895,9 +895,11 @@ TEST_CASE ("body_10a_start_is_the_phase_at_the_note_on")
 
 TEST_CASE ("body_10a_a_start_at_90_steps_at_the_first_millisecond")
 {
+    // Measured from before the note: at Drive 0 the first sample is the whole step, and `fromOnset` would cut it off.
     BarePlugin plugin;
     setParam (plugin, "body_start", 90.0f);
-    CHECK (stepAtStartDb (fromOnset (renderNote (plugin, rate48, 0.2))) > -10.0);
+    const auto audio = renderNote (plugin, rate48, 0.2, 1000);
+    CHECK (20.0 * std::log10 (measure::largestStepBetween (audio, rate48, 999.0 / rate48, 1048.0 / rate48) / measure::peak (audio)) > -10.0);
 }
 
 TEST_CASE ("body_10b_a_single_hit_from_silence_on_the_notes_sample")
@@ -931,23 +933,29 @@ TEST_CASE ("body_10c_eng_03_holds_at_every_start")
 
 TEST_CASE ("body_10c_eng_04_holds_at_every_start")
 {
-    struct Result { double hz; float peak; };
-    for (auto start : { 0.0f, 37.0f, 90.0f })
+    struct Result { double hz, lufs; float peak; };
+    for (auto start : { 0.0f, 20.0f, 37.0f, 90.0f })
         for (auto drive : { 0.0f, 6.0f })
         {
             const auto measureAt = [&] (double rate) {
                 PluginProcessor plugin;
                 set (plugin, { { "body_start", start }, { "body_drive", drive } });
-                const auto audio = renderNote (plugin, rate, 0.45);
-                return Result { measure::frequency (audio, rate, 0.31, 0.39), measure::peak (audio) };
+                const auto stereo = renderNoteStereo (plugin, rate, 0.45);
+                const std::vector<float> left (stereo.getReadPointer (0), stereo.getReadPointer (0) + stereo.getNumSamples());
+                return Result { measure::frequency (left, rate, 0.31, 0.39), measure::loudness (left, left, rate), measure::peak (left) };
             };
             const auto base = measureAt (44100.0);
+
+            // The default is held to 1 %. Below Start 90 the clip's first corners fall high in the sweep, where the
+            // filters' overshoot follows the sample rate: the peak moves by 0.75 dB at Start 0, see BODY-10c.
+            const auto peakEpsilon = drive > 0.0f && start < 90.0f ? 0.1 : 0.01;
             for (auto rate : { 48000.0, 96000.0, 192000.0 })
             {
                 const auto other = measureAt (rate);
                 INFO ("start " << start << ", drive " << drive << ", rate " << rate);
                 CHECK (other.hz == Catch::Approx (base.hz).epsilon (0.01));
-                CHECK (other.peak == Catch::Approx (base.peak).epsilon (0.01));
+                CHECK (other.lufs == Catch::Approx (base.lufs).margin (0.1));
+                CHECK (other.peak == Catch::Approx (base.peak).epsilon (peakEpsilon));
             }
         }
 }

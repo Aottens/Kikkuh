@@ -16,7 +16,8 @@ public:
     // Builds the shared tables; call it off the audio thread (the processor constructor does).
     static void warmUp() { tables(); }
 
-    void reset() { phase = 0.0; }
+    // startPhase is a fraction of a cycle: the first next() reads there.
+    void reset (double startPhase = 0.0) { phase = startPhase; }
 
     float next (double hz, double sampleRate, float wave)
     {

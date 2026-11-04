@@ -2,6 +2,7 @@
 
 #include "BodyDrive.h"
 #include "MorphOsc.h"
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -10,11 +11,13 @@
 namespace dsp
 {
 // The BODY knobs in the units of specs/modules/body.md. Tune is a MIDI note, C3 = 60.
+// The member defaults are the sound before BODY-08 (tools/Sketch.h takes them as "today"); the plugin's own defaults live in createLayout.
 struct BodyParams
 {
     float wave = 0.0f, tune = 33.0f, pitchAmount = 36.0f, pitchDecayMs = 100.0f, pitchShape = 0.0f,
           attackMs = 0.0f, holdMs = 0.0f, ampDecayMs = 400.0f, ampShape = 0.0f,
-          driveDb = 0.0f, filterCutoffHz = 20000.0f, filterResPercent = 0.0f, filterEnvOctaves = 0.0f;
+          driveDb = 0.0f, filterCutoffHz = 20000.0f, filterResPercent = 0.0f, filterEnvOctaves = 0.0f,
+          sweep2Amount = 0.0f, sweep2DecayMs = 300.0f, startDegrees = 0.0f;
 };
 
 // Falls from 1 to exactly 0 over x = 0 ... 1; shape is in percent.
@@ -28,9 +31,9 @@ inline double bodyTailNote (const BodyParams& p)
 {
     const auto k = std::pow (3.0, 1.0 + p.ampShape / 100.0);
     const auto t = p.attackMs + p.holdMs + p.ampDecayMs * (1.0 - std::pow (0.01, 1.0 / k));
-    if (t >= p.pitchDecayMs)
-        return p.tune;
-    return p.tune + p.pitchAmount * bodyCurve (t / p.pitchDecayMs, p.pitchShape);
+    // A curve past its end is 0, not NaN: clamp x to 1.
+    return p.tune + p.pitchAmount * bodyCurve (std::min (1.0, t / p.pitchDecayMs), p.pitchShape)
+           + p.sweep2Amount * bodyCurve (std::min (1.0, t / p.sweep2DecayMs), 0.0);
 }
 
 // "A0", "F#0", with C3 = 60.
@@ -63,7 +66,8 @@ public:
     {
         // The cutoff is smoothed in octaves: a jump across ten octaves would otherwise open in the first millisecond.
         targets = { p.wave, p.tune, p.pitchAmount, p.pitchDecayMs, p.pitchShape, p.attackMs, p.holdMs, p.ampDecayMs, p.ampShape,
-                    p.driveDb, std::log2 (std::max (p.filterCutoffHz, 1.0f)), p.filterResPercent, p.filterEnvOctaves };
+                    p.driveDb, std::log2 (std::max (p.filterCutoffHz, 1.0f)), p.filterResPercent, p.filterEnvOctaves, p.sweep2Amount, p.sweep2DecayMs };
+        startPhase = p.startDegrees / 360.0; // not smoothed: it only matters at the note-on
     }
 
     // Snaps the smoothers to the targets: hosts and tests set parameters before this.
@@ -84,8 +88,9 @@ public:
         if (! active)
             values = targets; // next() skips smoothing while idle, so the knobs are stale
         velocity = newVelocity;
-        osc.reset();
+        osc.reset (startPhase);
         pitchProgress = 0.0;
+        pitch2Progress = 0.0;
         ampProgress = 0.0;
         stage = Stage::attack;
         active = true;
@@ -110,8 +115,9 @@ public:
         {
             // Progress integrates dt / length, so a time knob changes the rate and never jumps the level.
             const auto dt = 1.0 / sampleRate;
-            const auto midi = tune + amount * bodyCurve (pitchProgress, pitchShape);
+            const auto midi = tune + amount * bodyCurve (pitchProgress, pitchShape) + values[13] * bodyCurve (pitch2Progress, 0.0);
             pitchProgress = std::min (1.0, pitchProgress + dt / (0.001 * std::max (pitchMs, 1.0f)));
+            pitch2Progress = std::min (1.0, pitch2Progress + dt / (0.001 * std::max (values[14], 1.0f)));
 
             if (stage == Stage::attack && attackMs <= 0.0f)
                 enter (Stage::hold);
@@ -171,8 +177,8 @@ private:
     BodyDrive drive;
     BodyFilter filter;
     long tailLeft = 0;
-    std::array<float, 13> targets {}, values {};
-    double sampleRate = 44100.0, smoothing = 0.0, pitchProgress = 0.0, ampProgress = 0.0;
+    std::array<float, 15> targets {}, values {};
+    double sampleRate = 44100.0, smoothing = 0.0, pitchProgress = 0.0, pitch2Progress = 0.0, ampProgress = 0.0, startPhase = 0.0;
     float velocity = 0.0f;
     Stage stage = Stage::attack;
     bool active = false;

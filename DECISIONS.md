@@ -15,7 +15,7 @@ out of the path at the top of Cutoff.
 4x (-76 dB worst case); a steeper or higher stop edge (flatter or shorter, but below 80 dB or duller above 15 kHz).
 
 **Reasoning:** measured worst case -84 dB from A#1 to D3 at Drive 24, -0.14 dB at 18 kHz, against a bare clip's -74 dB on
-G2. The cost is that what passes the clip arrives 3 samples late at 48 kHz, about 0.07 ms, while the reported latency
+G2. The cost is that what passes the clip arrives 3 samples late at 48 kHz, about 0.06 ms, while the reported latency
 stays 0 (ENG-02). The 80 dB limit is still a proposal; higher tones alias more (-68 dB at C5), as BODY-06d expects.
 
 **Reversal trigger:** the owner hears aliasing or a late attack in the VS1-03 or CORE-01 run, or CPU becomes a problem.

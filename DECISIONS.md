@@ -140,3 +140,18 @@ default Start 90 stays held to 1 %, the other Starts to 10 %, and pitch and loud
 **Reasoning:** the default is not affected, and pitch and loudness hold.
 
 **Reversal trigger:** the owner hears a difference between sample rates, or a limiter in the Master section depends on the peak.
+
+## 2026-11-04 — Playing: the note replaces Tune, velocity before Drive, a retrigger fades the old value (VS1-05, owner)
+
+**Decision:** with Key Track on the played note replaces Tune, clamped to C0..C3. Velocity scales the level before Drive.
+Kikkuh plays one kick at a time. On a retrigger the old kick's last value fades with a 3 ms time constant before Drive, and
+the filter's envelope moves to its new start over the same fade. There is no knob for it.
+
+**Alternatives considered:** Tune as a transposition around C1, which keeps the knob alive but plays out of key at its
+default; velocity after Drive, which keeps the tone the same at every velocity; a second voice that rings on and fades,
+which costs an oscillator per overlapping note and still needs a rule for notes that pile up.
+
+**Reasoning:** what is in the piano roll is what you hear. Velocity before Drive is today's behaviour, so projects keep
+their sound. One fading value needs no extra voice and holds at any note rate.
+
+**Reversal trigger:** the VS1-05 run hears the fade as abrupt or smeared, or a dead Tune gets in the way in VS1-07.

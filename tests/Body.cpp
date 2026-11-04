@@ -1146,7 +1146,8 @@ TEST_CASE ("eng_06a_state_restores_every_parameter")
     {
         auto* p = findParam (saved, id);
         REQUIRE (p != nullptr);
-        p->setValueNotifyingHost (position);
+        // A switch holds 0 or 1 only once it is restored, so it is set to one of those.
+        p->setValueNotifyingHost (juce::String (id) == "play_key_track" ? 1.0f : position);
         values[id] = p->getValue();
         position += 0.08f;
     }
@@ -1393,8 +1394,9 @@ TEST_CASE ("play_02e_the_sweeps_run_on_top_of_the_note_and_times_do_not_follow_i
         }
     }
 
+    // Drive 0: `secondsBelowDb` measures from the peak, and at the defaults that is the onset overshoot of the drive's filters.
     const auto render = [] (int note) {
-        PluginProcessor plugin;
+        BarePlugin plugin;
         setParam (plugin, "play_key_track", 1.0f);
         return renderHits (plugin, rate48, 0.6, { { 0.0, note } });
     };
@@ -1481,7 +1483,7 @@ TEST_CASE ("play_03d_a_retrigger_is_the_same_kick_after_50_ms")
                 return renderHits (plugin, rate, seconds, hits);
             };
             const auto at = 0.3;
-            const auto retriggered = render ({ first, { at, second.note, second.velocity } }, at + 0.35);
+            const auto retriggered = render ({ first, { at, second.note, second.velocity } }, at + 0.36);
             const auto fromSilence = render ({ { 0.0, second.note, second.velocity } }, 0.35);
             const auto skip = static_cast<size_t> (0.05 * rate);
             const auto offset = static_cast<size_t> (std::lround (at * rate));

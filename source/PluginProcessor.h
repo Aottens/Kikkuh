@@ -45,7 +45,7 @@ private:
     void migrate (juce::XmlElement& xml, int fromVersion);
 
     juce::AudioProcessorValueTreeState apvts;
-    std::array<std::atomic<float>*, 16> raw {};
+    std::array<std::atomic<float>*, 18> raw {};
     dsp::BodyVoice voice;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)

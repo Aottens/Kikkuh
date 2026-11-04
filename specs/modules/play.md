@@ -42,6 +42,9 @@ With Key Track on, the note you play is the note you hear: it takes the place of
 as they do on Tune. Notes outside Tune's range take the nearest end of it, C0 or C3, so a note can never sweep beyond
 what the knobs can reach. Times do not follow the note. Tune is not used while Key Track is on.
 
+Measured, not a limit: at the defaults a keyed C3 peaks at +3.1 dBFS against +1.2 at C1, because the drive's filters
+overshoot more on a higher sweep's first hit. Nothing limits it until the Master section (VS3-01).
+
 - **PLAY-02a** With Key Track off, MIDI notes 24, 36, 45 and 60 render sample-identically.
 - **PLAY-02b** With Key Track on and the sweeps at 0, the tail is within 10 cents of the note: 32.7 Hz at MIDI 24,
   65.4 Hz at 36, 110 Hz at 45, 261.6 Hz at 60.
@@ -49,8 +52,9 @@ what the knobs can reach. Times do not follow the note. Tune is not used while K
 - **PLAY-02d** With Key Track on, the Tune knob at any value renders sample-identically to its default.
 - **PLAY-02e** With Key Track on, the note at the default sweeps follows BODY-09a's formula with the note for Tune,
   within 50 cents, at 10, 75, 300 and 500 ms, with Amp Decay 2000 ms so that the kick still sounds at 500 ms. The -6 and
-  -20 dB times at the default Amp Decay stay within 8 ms between notes 36 and 60: half a period of note 36, which is as
-  closely as a peak can show it.
+  -20 dB times at the default Amp Decay, with Drive and Start at 0, stay within 8 ms between notes 36 and 60: half a
+  period of note 36, which is as closely as a peak can show it. Drive 0, because at the default Drive the times are
+  read from an onset peak that itself changes with the note.
 - **PLAY-02f** Switching Key Track while a kick rings leaves that kick sample-identical; the next note follows the switch.
 
 ### PLAY-03 Retrigger

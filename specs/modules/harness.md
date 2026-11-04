@@ -1,6 +1,6 @@
 # Module spec: harness (HARN)
 
-Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-03), built by VS1-02. HARN-05 and HARN-06 approved by the owner (2026-11-03), built by VS1-08; the owner chose four references (2026-11-04). HARN-07..09 proposed for VS1-09, awaiting the owner's approval.**
+Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-03), built by VS1-02. HARN-05 and HARN-06 approved by the owner (2026-11-03), built by VS1-08; the owner chose four references (2026-11-04). HARN-07..09 approved by the owner (2026-11-04), built by VS1-09.**
 
 ## Acceptance criteria
 
@@ -133,9 +133,9 @@ Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-
   | `tune_cents` (-100..100) | moves the whole pitch, between notes |
   | `sweep2_amount` (0..24 st), `sweep2_decay` (1..2000 ms), `sweep2_shape` (-100..100) | adds a second curve to the sweep; the sweep is `Tune + Amount * g1 + sweep2_amount * g2` |
   | `start_phase` (0..90 degrees) | the phase the oscillator starts at: 90 starts at full level |
-  | `click_kind` (`tone`, `noise`), `click_hz` (500..12000), `click_ms` (0.5..20), `click_db` (-40..6) | a burst added to the voice, falling by 60 dB over `click_ms`; noise comes from a fixed seed |
+  | `click_kind` (`tone`, `noise`), `click_hz` (500..12000), `click_ms` (0.5..20), `click_db` (-40..6) | a burst added to the voice, falling as `(1 - t / click_ms)^2`, silent from `click_ms`; noise comes from a fixed seed |
   | `dip_at`, `dip_width` (ms), `dip_db` (-40..0), and `dip2_at`, `dip2_width`, `dip2_db` | a raised-cosine dent in the level |
-  | `sat_kind` (`soft`, `asym`, `hard`), `sat_drive` (0..36 dB), `sat_place` (`after_amp`, `before_amp`) | saturation; `soft` is tanh, `asym` tanh with a bias whose DC is removed, `hard` a clip |
+  | `sat_kind` (`soft`, `asym`, `hard`), `sat_drive` (0..36 dB), `sat_place` (`after_amp`, `before_amp`) | saturation, at 4 times the running rate when `after_amp`; `soft` is tanh, `asym` tanh with a bias whose DC is removed, `hard` a clip |
   | `filter_kind` (`svf12`, `svf24`, `ladder`), `filter_cutoff` (20..20000 Hz), `filter_res` (0..1), `filter_env` (0..8 octaves), `filter_decay` (1..2000 ms) | a low-pass; the cutoff starts `filter_env` octaves up and falls along BODY's curve at Shape 0 |
 
   Signal order: oscillator, amp (with `sat_place=before_amp` the saturation comes first), dents, click,
@@ -150,19 +150,22 @@ Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-
     the output starts on the same sample as a kick rendered at 48 kHz, within one sample.
   - **HARN-08c** Sweep: `tune_cents=-22` lands within 3 cents of the note minus 22 cents. With
     `sweep2_amount`, the pitch follows the sum above within 50 cents at 10, 75, 300 and 500 ms, and ends on Tune.
-  - **HARN-08d** Hard start: `start_phase=90` has a `step_1ms` above -3 dB. A `tone` click at 3 kHz and a
+  - **HARN-08d** Hard start: `start_phase=90` has a `step_1ms` above -10 dB, inside the references' -2.4 to -12.7 dB, and the plain kick stays below -20 dB. A `tone` click at 3 kHz and a
     `noise` click each raise the energy above 1 kHz in the first 5 ms to over 5 %, and leave the band
     shares of 50-200 ms unchanged within 1 percentage point.
-  - **HARN-08e** Dents: a dent of -10 dB at 1.5 ms, 1 ms wide, reads the peak of 1-2 ms at -10 dB within 2 dB
-    on a kick with a slow sweep, and leaves 5-10 ms within 1 dB.
+  - **HARN-08e** Dents: the kick with a dent of -10 dB at 1.5 ms, 1 ms wide, divided by the same kick
+    without it, reads -10 dB within 1 dB at 1.5 ms and 0 dB within 1 dB from 5 to 10 ms.
   - **HARN-08f** Saturation: on a steady sine `soft` and `hard` have a 3rd harmonic above -40 dB and a 2nd
     below -60 dB, and `asym` has a 2nd above -40 dB with DC below -60 dB, at drive 12 dB.
     With `sat_place=before_amp` the 3rd harmonic relative to the fundamental in the tail stays within
-    3 dB of its level at the start; with `after_amp` it falls by at least 10 dB. Aliasing of a 5 kHz sine at
-    drive 24 dB stays at least 80 dB below the fundamental.
-  - **HARN-08g** Filter: on white noise with no env, `svf12` and `svf24` fall 12 and 24 dB per octave
-    above cutoff within 3 dB, as does `ladder` at 24, and the -3 dB point falls within 10 % of `filter_cutoff`
-    at `filter_res=0` for the SVFs. `filter_env` moves the cutoff as described, shown by the band shares.
+    3 dB of its level at the start; with `after_amp` it falls by at least 10 dB. Aliasing at drive 24 dB stays at least 80 dB
+    below the fundamental, on a 5 kHz sine for `soft` and `asym`, and on a 200 Hz sine for `hard`: a clip
+    has corners, whose harmonics fold back at any oversampling for a high tone.
+  - **HARN-08g** Filter: on low-level sines with no env, `svf12` falls 12 dB per octave and `svf24` and
+    `ladder` 24 dB per octave, within 3 dB, from 4 to 8 times the cutoff. At `filter_res=0` the -3 dB point
+    of both SVFs is within 10 % of `filter_cutoff`. `filter_env` opens the filter early and not late: on a
+    saw with cutoff 200 Hz, env 5 octaves and decay 100 ms, energy above 1 kHz is over 1 % in 0-20 ms and
+    below 0.1 % in 200-400 ms.
 
 - **HARN-09** The rounds: the owner chooses by ear, in at most 8 rounds, each one question. Every round
   file is in `tests/manual/rounds/`, and "no difference" and "none of these" are answers that count. A

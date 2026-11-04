@@ -1,0 +1,9 @@
+# Round 1 (HARN-09): the starting point. All on A0, so the note does not decide.
+# The four curves are the fits of docs/research/reference-kicks.md, moved to A0.
+base body_tune=A0
+option today
+option more-tick body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30
+option kick09-curve body_pitch_amount=38.74 body_pitch_decay=320.4 body_pitch_shape=100 body_amp_hold=3.17 body_amp_decay=1841.8 body_amp_shape=84.1
+option beefy-curve body_pitch_amount=22.42 body_pitch_decay=139.7 body_pitch_shape=13.6 body_amp_hold=4.1 body_amp_decay=234.3 body_amp_shape=-100
+option valid-curve body_pitch_amount=29.57 body_pitch_decay=188.8 body_pitch_shape=37.5 body_amp_hold=30.45 body_amp_decay=317 body_amp_shape=-30.4
+option crotchety-curve body_pitch_amount=22.88 body_pitch_decay=482.8 body_pitch_shape=28 body_amp_hold=4.04 body_amp_decay=1298.5 body_amp_shape=51.1

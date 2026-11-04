@@ -5,6 +5,7 @@
 #include <cmath>
 #include <complex>
 #include <cstddef>
+#include <limits>
 #include <numbers>
 #include <tuple>
 #include <utility>
@@ -743,5 +744,62 @@ inline double sideToMidDb (const std::vector<float>& left, const std::vector<flo
         side += 0.25 * (l - r) * (l - r);
     }
     return 10.0 * std::log10 ((side + 1.0e-20) / (mid + 1.0e-20));
+}
+
+// HARN-07a: ITU-R BS.1770 K-weighting, designed for any rate as in libebur128. Coefficients are
+// b0, b1, b2, a1, a2 (a0 = 1).
+struct KWeighting
+{
+    std::array<double, 5> shelf, highpass;
+};
+
+inline KWeighting kWeighting (double rate)
+{
+    const auto pi = std::numbers::pi;
+    const auto f0 = 1681.974450955533, gain = 3.999843853973347, q = 0.7071752369554196;
+    const auto vh = std::pow (10.0, gain / 20.0), vb = std::pow (vh, 0.4996667741545416);
+    auto k = std::tan (pi * f0 / rate);
+    const auto a0 = 1.0 + k / q + k * k;
+    KWeighting w;
+    w.shelf = { (vh + vb * k / q + k * k) / a0, 2.0 * (k * k - vh) / a0, (vh - vb * k / q + k * k) / a0, 2.0 * (k * k - 1.0) / a0, (1.0 - k / q + k * k) / a0 };
+
+    const auto f1 = 38.13547087602444, q1 = 0.5003270373238773;
+    k = std::tan (pi * f1 / rate);
+    const auto d = 1.0 + k / q1 + k * k;
+    w.highpass = { 1.0, -2.0, 1.0, 2.0 * (k * k - 1.0) / d, (1.0 - k / q1 + k * k) / d };
+    return w;
+}
+
+// Integrated loudness in LUFS over the 400 ms from time zero (HARN-05a: the onset of the mid), both
+// channels weighted equally. Samples past the end count as silence; silence reads -inf.
+inline double loudness (const std::vector<float>& left, const std::vector<float>& right, double rate)
+{
+    const auto size = std::min (left.size(), right.size());
+    std::vector<float> mid (size);
+    for (size_t i = 0; i < size; ++i)
+        mid[i] = 0.5f * (left[i] + right[i]);
+    const auto start = onset (mid);
+    if (start < 0)
+        return -std::numeric_limits<double>::infinity();
+
+    const auto k = kWeighting (rate);
+    const auto window = static_cast<size_t> (std::llround (0.4 * rate));
+    const auto meanSquare = [&] (const std::vector<float>& channel) {
+        std::array<double, 4> shelfState {}, highState {}; // x1, x2, y1, y2
+        const auto run = [] (const std::array<double, 5>& c, std::array<double, 4>& s, double x) {
+            const auto y = c[0] * x + c[1] * s[0] + c[2] * s[1] - c[3] * s[2] - c[4] * s[3];
+            s = { x, s[0], y, s[2] };
+            return y;
+        };
+        double sum = 0.0;
+        for (size_t i = 0; i < window; ++i)
+        {
+            const auto at = static_cast<size_t> (start) + i;
+            const auto y = run (k.highpass, highState, run (k.shelf, shelfState, at < size ? static_cast<double> (channel[at]) : 0.0));
+            sum += y * y;
+        }
+        return sum / static_cast<double> (window);
+    };
+    return -0.691 + 10.0 * std::log10 (meanSquare (left) + meanSquare (right));
 }
 }

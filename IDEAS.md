@@ -14,7 +14,7 @@ way round; a task status named in a row ("VS1-02 todo") must match BACKLOG
 | Id | Idea | Status | Phase | Module |
 | --- | --- | --- | --- | --- |
 | IDEA-01 | Send and return for external rumble | triaged, VS4-01 todo | after v1 | rumble |
-| IDEA-02 | A sound engine round, chosen by ear | backlog, VS1-08 and VS1-09 todo | slice 1, before VS1-03 | body |
+| IDEA-02 | A sound engine round, chosen by ear | backlog, VS1-09 todo | slice 1, before VS1-03 | body |
 
 ### IDEA-01 — Send and return for external rumble
 The owner's idea: send the kick out to your own rumble chain and take the result back into Kikkuh.
@@ -34,5 +34,7 @@ the owner's. Proposal, after VS1-02 (`kikkuh-render`) and before VS1-03:
 4. The choices become the criteria of VS1-03, and new defaults for BODY. A run in VS1-01 showed the
    defaults are far from a kick with more tick: reachable with Amount 60, Pitch Decay 40, Shape +30.
 
-Open questions: which references; is the character a filter and drive matter or also the oscillator;
+VS1-08 chose four references and measured them: `docs/research/reference-kicks.md`.
+
+Open questions: is the character a filter and drive matter or also the oscillator;
 may hits vary a little like analog hardware, which ENG-03 now forbids.

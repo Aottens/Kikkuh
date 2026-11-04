@@ -19,7 +19,8 @@ feeds RUMBLE, whose output joins before MASTER. The bus layout is decided before
 - `source/PluginProcessor.*`: JUCE glue. Parameters, state, MIDI and play-head reading, calls into
   `dsp/`. Nothing here decides how a kick sounds.
 - `tools/`: `kikkuh-render` (HARN-04), a development tool that plays a note through the processor
-  with `tests/Render.h` and writes a WAV. Not shipped.
+  with `tests/Render.h` and writes a WAV. `kikkuh-measure` (HARN-05) prints the numbers of `tests/Measure.h`
+  for a WAV or AIFF. Neither is shipped.
 - `source/ui/` (from the first panel task): the editor. Reads state and sends parameter changes; no DSP.
 
 ## Threads

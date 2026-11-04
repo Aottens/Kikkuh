@@ -5,7 +5,7 @@ the kick in your track with knobs, like on a subtractive synth.
 
 ## Status
 Very early. Kikkuh plays a synthesized kick that you shape with wave, tune, pitch, amp, drive and filter knobs in
-the host's generic editor, and its defaults are the sound chosen by ear in blind rounds. The real panel comes next.
+the host's generic editor, its tail stays put when you change the sweep, and its defaults are the sound chosen by ear in blind rounds. The real panel comes next.
 Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 
 ## What works today
@@ -16,6 +16,7 @@ Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 - Tune sets the note the kick lands on; Pitch Amount, Decay and Shape set the sweep down to it, and Sweep 2 Amount and
   Decay add a slower second stage.
 - Start sets the phase at the note-on: at 90 degrees the kick starts at full level.
+- Tail Anchor, on by default, keeps the tail in place while you turn the pitch knobs: the sweep changes and what follows it does not.
 - Attack, Hold, Decay and Shape set the level.
 - Drive clips the kick hard after the amp, oversampled and still at zero reported latency.
 - A 24 dB low-pass with Cutoff, Resonance and Env Amount follows the drive.

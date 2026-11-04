@@ -1,5 +1,6 @@
 #pragma once
 
+#include "BodyDrive.h"
 #include "MorphOsc.h"
 #include <array>
 #include <cmath>
@@ -8,11 +9,12 @@
 
 namespace dsp
 {
-// The nine BODY knobs in the units of specs/modules/body.md. Tune is a MIDI note, C3 = 60.
+// The BODY knobs in the units of specs/modules/body.md. Tune is a MIDI note, C3 = 60.
 struct BodyParams
 {
     float wave = 0.0f, tune = 33.0f, pitchAmount = 36.0f, pitchDecayMs = 100.0f, pitchShape = 0.0f,
-          attackMs = 0.0f, holdMs = 0.0f, ampDecayMs = 400.0f, ampShape = 0.0f;
+          attackMs = 0.0f, holdMs = 0.0f, ampDecayMs = 400.0f, ampShape = 0.0f,
+          driveDb = 0.0f, filterCutoffHz = 20000.0f, filterResPercent = 0.0f, filterEnvOctaves = 0.0f;
 };
 
 // Falls from 1 to exactly 0 over x = 0 ... 1; shape is in percent.
@@ -59,7 +61,9 @@ class BodyVoice
 public:
     void setParams (const BodyParams& p)
     {
-        targets = { p.wave, p.tune, p.pitchAmount, p.pitchDecayMs, p.pitchShape, p.attackMs, p.holdMs, p.ampDecayMs, p.ampShape };
+        // The cutoff is smoothed in octaves: a jump across ten octaves would otherwise open in the first millisecond.
+        targets = { p.wave, p.tune, p.pitchAmount, p.pitchDecayMs, p.pitchShape, p.attackMs, p.holdMs, p.ampDecayMs, p.ampShape,
+                    p.driveDb, std::log2 (std::max (p.filterCutoffHz, 1.0f)), p.filterResPercent, p.filterEnvOctaves };
     }
 
     // Snaps the smoothers to the targets: hosts and tests set parameters before this.
@@ -69,6 +73,9 @@ public:
         smoothing = 1.0 - std::exp (-1.0 / (0.01 * sampleRate));
         values = targets;
         active = false;
+        tailLeft = 0;
+        drive.reset();
+        filter.prepare (newSampleRate);
     }
 
     // ponytail: a hard restart clicks when a kick is still ringing; PLAY-03 replaces this.
@@ -82,53 +89,71 @@ public:
         ampProgress = 0.0;
         stage = Stage::attack;
         active = true;
+        tailLeft = 0;
     }
 
     bool isActive() const { return active; }
 
     float next()
     {
-        if (! active)
+        if (! active && tailLeft <= 0)
             return 0.0f;
 
         for (size_t i = 0; i < values.size(); ++i)
             values[i] += static_cast<float> (smoothing) * (targets[i] - values[i]);
-        const auto [wave, tune, amount, pitchMs, pitchShape, attackMs, holdMs, decayMs, ampShape] = values;
+        const auto wave = values[0], tune = values[1], amount = values[2], pitchMs = values[3], pitchShape = values[4],
+                   attackMs = values[5], holdMs = values[6], decayMs = values[7], ampShape = values[8];
 
-        // Progress integrates dt / length, so a time knob changes the rate and never jumps the level.
-        const auto dt = 1.0 / sampleRate;
-        const auto midi = tune + amount * bodyCurve (pitchProgress, pitchShape);
-        pitchProgress = std::min (1.0, pitchProgress + dt / (0.001 * std::max (pitchMs, 1.0f)));
-
-        if (stage == Stage::attack && attackMs <= 0.0f)
-            enter (Stage::hold);
-        if (stage == Stage::hold && holdMs <= 0.0f)
-            enter (Stage::decay);
-
-        double level = 1.0;
-        if (stage == Stage::attack)
+        float dry = 0.0f;
+        double envCurve = 0.0; // 1 while the amp rises or holds, then the amp's own fall, 0 after the end
+        if (active)
         {
-            level = ampProgress;
-            ampProgress += dt / (0.001 * attackMs);
-            if (ampProgress >= 1.0)
+            // Progress integrates dt / length, so a time knob changes the rate and never jumps the level.
+            const auto dt = 1.0 / sampleRate;
+            const auto midi = tune + amount * bodyCurve (pitchProgress, pitchShape);
+            pitchProgress = std::min (1.0, pitchProgress + dt / (0.001 * std::max (pitchMs, 1.0f)));
+
+            if (stage == Stage::attack && attackMs <= 0.0f)
                 enter (Stage::hold);
-        }
-        else if (stage == Stage::hold)
-        {
-            ampProgress += dt / (0.001 * holdMs);
-            if (ampProgress >= 1.0)
+            if (stage == Stage::hold && holdMs <= 0.0f)
                 enter (Stage::decay);
+
+            double level = 1.0;
+            if (stage == Stage::attack)
+            {
+                level = ampProgress;
+                ampProgress += dt / (0.001 * attackMs);
+                if (ampProgress >= 1.0)
+                    enter (Stage::hold);
+            }
+            else if (stage == Stage::hold)
+            {
+                ampProgress += dt / (0.001 * holdMs);
+                if (ampProgress >= 1.0)
+                    enter (Stage::decay);
+            }
+            else
+            {
+                level = bodyCurve (ampProgress, ampShape);
+                envCurve = level;
+                ampProgress += dt / (0.001 * std::max (decayMs, 1.0f));
+                if (ampProgress >= 1.0)
+                {
+                    active = false;
+                    tailLeft = static_cast<long> (tailSeconds * sampleRate);
+                }
+            }
+            if (stage != Stage::decay)
+                envCurve = 1.0;
+
+            const auto hz = 440.0 * std::pow (2.0, (midi - 69.0) / 12.0);
+            dry = osc.next (hz, sampleRate, wave) * static_cast<float> (level) * velocity;
         }
         else
-        {
-            level = bodyCurve (ampProgress, ampShape);
-            ampProgress += dt / (0.001 * std::max (decayMs, 1.0f));
-            if (ampProgress >= 1.0)
-                active = false;
-        }
+            --tailLeft; // drive and filter ring out on silence
 
-        const auto hz = 440.0 * std::pow (2.0, (midi - 69.0) / 12.0);
-        return osc.next (hz, sampleRate, wave) * static_cast<float> (level) * velocity;
+        // ponytail: the tail runs a fixed 5 s after the kick; a resonant filter with a long ring needs a level gate.
+        return filter.process (drive.process (dry, values[9]), std::exp2 (values[10]), values[11], values[12], static_cast<float> (envCurve));
     }
 
 private:
@@ -140,8 +165,13 @@ private:
         ampProgress = 0.0;
     }
 
+    static constexpr double tailSeconds = 5.0;
+
     MorphOsc osc;
-    std::array<float, 9> targets {}, values {};
+    BodyDrive drive;
+    BodyFilter filter;
+    long tailLeft = 0;
+    std::array<float, 13> targets {}, values {};
     double sampleRate = 44100.0, smoothing = 0.0, pitchProgress = 0.0, ampProgress = 0.0;
     float velocity = 0.0f;
     Stage stage = Stage::attack;

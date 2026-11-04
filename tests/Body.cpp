@@ -540,7 +540,7 @@ TEST_CASE ("body_06b_the_clip_makes_odd_harmonics")
 
 TEST_CASE ("body_06c_a_low_tail_stays_clean")
 {
-    // BODY-08's values that exist so far: VS1-10 adds Sweep 2 and Start, and the rate of the tail is the same.
+    // BODY-08's values that exist so far: VS1-10 adds Sweep 2 and Start.
     PluginProcessor plugin;
     set (plugin, { { "body_pitch_amount", 60.0f }, { "body_pitch_decay", 40.0f }, { "body_pitch_shape", 30.0f }, { "body_drive", 6.0f } });
     const auto audio = renderNote (plugin, rate48, 0.35);

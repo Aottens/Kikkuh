@@ -309,7 +309,9 @@ inline std::vector<float> shape (const Params& p, const std::vector<float>& x)
 // The voice alone at `rate`, through the whole signal order. The envelopes mirror dsp::BodyVoice.
 inline std::vector<float> renderRaw (const Params& p, double rate, double seconds)
 {
-    const auto [wave, tune, amount, pitchMs, pitchShape, attackMs, holdMs, decayMs, ampShape] = p.body;
+    const auto &wave = p.body.wave, &tune = p.body.tune, &amount = p.body.pitchAmount, &pitchMs = p.body.pitchDecayMs,
+               &pitchShape = p.body.pitchShape, &attackMs = p.body.attackMs, &holdMs = p.body.holdMs, &decayMs = p.body.ampDecayMs,
+               &ampShape = p.body.ampShape;
     std::vector<float> y (static_cast<size_t> (std::llround (seconds * rate)));
     const auto dt = 1.0 / rate;
 

@@ -17,6 +17,8 @@ host's generic editor. Filter, drive and the real panel come next. Plan in `BACK
 - All knobs are automatable and smoothed, and they come back with your project.
 - `kikkuh-render` writes a kick to a WAV without a DAW, for example
   `build/kikkuh-render --out kick.wav body_tune=F#0 body_pitch_amount=60`.
+- `kikkuh-measure` prints the sweep, harmonics, first milliseconds and decay of a kick from a WAV or
+  AIFF, and the nearest knob values: `build/kikkuh-measure kick.wav`.
 
 ## Build and run
 

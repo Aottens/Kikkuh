@@ -74,3 +74,15 @@ template (Dukko removed it for carrying helpers nothing used).
 **Reasoning:** Dukko already ran this loop on a real plugin in Bitwig.
 
 **Reversal trigger:** a rule costs more than it catches, on the owner's say.
+
+## 2026-11-04 — Reference kicks stay outside the repo (owner)
+
+**Decision:** four references, chosen by the owner by ear from kicks already on this Mac. The repo holds
+their names, hashes and numbers, not the audio.
+
+**Alternatives considered:** three, as CORE-01 asks; committing the audio.
+
+**Reasoning:** one pack has no licence file and the Bitwig terms are not read. The numbers are what later
+work needs.
+
+**Reversal trigger:** a test in CI needs the audio itself, with a licence that allows it.

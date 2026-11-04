@@ -2,6 +2,7 @@
 #include "Measure.h"
 #include "Render.h"
 #include <PluginProcessor.h>
+#include <dsp/BodyDrive.h>
 #include <dsp/MorphOsc.h>
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
@@ -17,7 +18,8 @@ constexpr double rate48 = 48000.0;
 
 const std::initializer_list<const char*> bodyIds {
     "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
-    "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape"
+    "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
+    "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env"
 };
 
 juce::RangedAudioParameter* findParam (juce::AudioProcessor& plugin, const juce::String& id)
@@ -386,6 +388,262 @@ TEST_CASE ("body_04e_a_kick_ends_without_a_click")
         }
 }
 
+// --- BODY-05 Filter ---
+
+namespace
+{
+std::vector<float> sineAt (double hz, double rate, double seconds = 0.5)
+{
+    std::vector<float> out (static_cast<size_t> (seconds * rate));
+    for (size_t i = 0; i < out.size(); ++i)
+        out[i] = static_cast<float> (std::sin (2.0 * std::numbers::pi * hz * static_cast<double> (i) / rate));
+    return out;
+}
+
+// Level in dB of a sine after the filter, settled.
+double filteredDb (double hz, double cutoff, double rate)
+{
+    dsp::BodyFilter filter;
+    filter.prepare (rate);
+    auto x = sineAt (hz, rate);
+    for (auto& sample : x)
+        sample = filter.process (sample, static_cast<float> (cutoff), 0.0f);
+    return 20.0 * std::log10 (measure::toneLevel (x, rate, hz, 0.25, 0.5));
+}
+
+// The share of a stretch's energy above `hz`, in 50 Hz bins.
+double shareAbove (const std::vector<float>& x, double hz, double from, double to)
+{
+    const auto start = static_cast<size_t> (from * rate48), size = static_cast<size_t> ((to - from) * rate48);
+    double total = 1.0e-30, above = 0.0;
+    for (double bin = 50.0; bin < rate48 / 2.0; bin += 50.0)
+    {
+        const auto power = measure::tonePower (x.data() + start, size, rate48, bin);
+        total += power;
+        if (bin >= hz)
+            above += power;
+    }
+    return above / total;
+}
+}
+
+TEST_CASE ("body_05a_at_the_defaults_a_sweep_to_5_khz_keeps_its_level")
+{
+    PluginProcessor plugin;
+    set (plugin, { { "body_tune", static_cast<float> (noteC3) }, { "body_pitch_amount", 50.0f }, { "body_pitch_decay", 1000.0f },
+                   { "body_pitch_shape", -100.0f }, { "body_amp_hold", 500.0f }, { "body_amp_decay", 2000.0f } });
+    const auto audio = renderNote (plugin, rate48, 0.5);
+    const auto reference = measure::peak (renderOsc (0.0f, 1000.0, 0.1));
+    for (double t = 0.0; t < 0.48; t += 0.02)
+    {
+        const std::vector<float> stretch (audio.begin() + static_cast<long> (t * rate48), audio.begin() + static_cast<long> ((t + 0.02) * rate48));
+        INFO ("at " << t << " s");
+        CHECK (std::abs (20.0 * std::log10 (measure::peak (stretch) / reference)) < 0.1);
+    }
+}
+
+TEST_CASE ("body_05b_slope_and_cutoff_at_every_rate")
+{
+    for (auto rate : { 44100.0, 48000.0, 192000.0 })
+    {
+        INFO ("rate " << rate);
+        const double cutoff = 500.0;
+        CHECK (filteredDb (0.9 * cutoff, cutoff, rate) > -3.0);
+        CHECK (filteredDb (1.1 * cutoff, cutoff, rate) < -3.0);
+        CHECK (filteredDb (4.0 * cutoff, cutoff, rate) - filteredDb (8.0 * cutoff, cutoff, rate) == Catch::Approx (24.0).margin (3.0));
+    }
+}
+
+TEST_CASE ("body_05c_env_amount_opens_the_cutoff_and_falls_with_the_amp_decay")
+{
+    PluginProcessor plugin;
+    set (plugin, { { "body_wave", 2.0f }, { "body_pitch_amount", 0.0f }, { "body_filter_cutoff", 200.0f }, { "body_filter_env", 5.0f } });
+    const auto audio = renderNote (plugin, rate48, 0.4);
+    CHECK (shareAbove (audio, 1000.0, 0.0, 0.02) > 0.01);
+    CHECK (shareAbove (audio, 1000.0, 0.2, 0.24) < 0.001);
+}
+
+TEST_CASE ("body_05d_filter_knobs_do_not_click")
+{
+    struct Jump { const char* id; float from, to; };
+    for (const auto& jump : { Jump { "body_filter_res", 0.0f, 100.0f }, Jump { "body_filter_res", 100.0f, 0.0f },
+                              Jump { "body_filter_env", 0.0f, 8.0f }, Jump { "body_filter_env", 8.0f, 0.0f } })
+    {
+        PluginProcessor plugin;
+        set (plugin, { { "body_tune", static_cast<float> (noteC1) }, { "body_pitch_amount", 0.0f }, { "body_amp_decay", 2000.0f },
+                       { "body_amp_shape", -100.0f }, { "body_filter_cutoff", 400.0f } });
+        setParam (plugin, jump.id, jump.from);
+        const auto audio = renderNote (plugin, rate48, 0.35, 0, 36, 1.0f, { 256 }, [&, moved = false] (double t) mutable {
+            if (t >= 0.2 && ! std::exchange (moved, true))
+                setParam (plugin, jump.id, jump.to);
+        });
+        INFO (jump.id << " from " << jump.from);
+        CHECK (measure::largestStepBetween (audio, rate48, 0.2, 0.35) < 0.05f);
+    }
+}
+
+TEST_CASE ("body_05_and_06_filter_runs_after_drive")
+{
+    // Before the clip, a filter would leave the clip's harmonics in; after it they are gone.
+    PluginProcessor plugin;
+    set (plugin, steady);
+    set (plugin, { { "body_drive", 24.0f }, { "body_filter_cutoff", 100.0f } });
+    const auto audio = renderNote (plugin, rate48, 0.5);
+    CHECK (measure::toneLevel (audio, rate48, 1375.0, 0.2, 0.4) / measure::toneLevel (audio, rate48, 55.0, 0.2, 0.4) < 0.001);
+}
+
+// --- BODY-06 Drive ---
+
+TEST_CASE ("body_06a_at_0_db_a_signal_stays_as_it_was")
+{
+    for (auto wave : { 0.0f, 2.0f })
+    {
+        PluginProcessor plugin;
+        set (plugin, { { "body_wave", wave }, { "body_tune", static_cast<float> (noteA0) }, { "body_pitch_amount", 0.0f },
+                       { "body_amp_hold", 500.0f }, { "body_drive", 0.0f } });
+        const auto audio = renderNote (plugin, rate48, 0.4);
+        const auto bare = renderOsc (wave, hzOf (noteA0), 0.4);
+        // 0.01 dB of full scale
+        for (size_t i = 0; i < bare.size(); ++i)
+            REQUIRE (std::abs (audio[i] - bare[i]) < 0.00115f);
+    }
+}
+
+TEST_CASE ("body_06a_drive_multiplies_and_clips_at_one")
+{
+    const auto levelAt = [] (float drive, float velocity) {
+        PluginProcessor plugin;
+        set (plugin, { { "body_tune", static_cast<float> (noteA0) }, { "body_pitch_amount", 0.0f }, { "body_amp_hold", 500.0f }, { "body_drive", drive } });
+        return renderNote (plugin, rate48, 0.4, 0, 36, velocity);
+    };
+    const auto clean = measure::toneLevel (levelAt (0.0f, 0.05f), rate48, 55.0, 0.1, 0.35);
+    const auto gained = measure::toneLevel (levelAt (12.0f, 0.05f), rate48, 55.0, 0.1, 0.35);
+    CHECK (20.0 * std::log10 (gained / clean) == Catch::Approx (12.0).margin (0.1));
+
+    // A flat top at 1: the filters of the oversampling ring at the corners, so a stretch of the top is read.
+    const auto clipped = levelAt (24.0f, 1.0f);
+    const auto samplesPerCycle = rate48 / 55.0;
+    const auto mid = clipped[static_cast<size_t> (std::round (0.1 * 55.0) * samplesPerCycle + samplesPerCycle / 4.0)];
+    CHECK (mid == Catch::Approx (1.0f).margin (0.01f));
+    CHECK (measure::peak (clipped) < 1.25f);
+}
+
+TEST_CASE ("body_06b_the_clip_makes_odd_harmonics")
+{
+    PluginProcessor plugin;
+    set (plugin, { { "body_tune", static_cast<float> (noteA0) }, { "body_pitch_amount", 0.0f }, { "body_amp_hold", 500.0f }, { "body_drive", 12.0f } });
+    const auto audio = renderNote (plugin, rate48, 0.45);
+    const auto fundamental = measure::toneLevel (audio, rate48, 55.0, 0.1, 0.45);
+    CHECK (20.0 * std::log10 (measure::toneLevel (audio, rate48, 165.0, 0.1, 0.45) / fundamental) > -40.0);
+    CHECK (20.0 * std::log10 (measure::toneLevel (audio, rate48, 110.0, 0.1, 0.45) / fundamental) < -60.0);
+}
+
+TEST_CASE ("body_06c_a_low_tail_stays_clean")
+{
+    // BODY-08's values that exist so far: VS1-10 adds Sweep 2 and Start, and the rate of the tail is the same.
+    PluginProcessor plugin;
+    set (plugin, { { "body_pitch_amount", 60.0f }, { "body_pitch_decay", 40.0f }, { "body_pitch_shape", 30.0f }, { "body_drive", 6.0f } });
+    const auto audio = renderNote (plugin, rate48, 0.35);
+    const auto fundamental = measure::toneLevel (audio, rate48, 55.0, 0.15, 0.3);
+    CHECK (20.0 * std::log10 (measure::toneLevel (audio, rate48, 165.0, 0.15, 0.3) / fundamental) < -60.0);
+}
+
+TEST_CASE ("body_06d_alias_limit_on_a_low_tone")
+{
+    // 200 Hz at 48 kHz repeats every 240 samples, so its aliases land on its harmonics and even a bare clip
+    // passes. The notes around it have no such luck: G2 is 196 Hz. The measurement's own ceiling is about -90 dB.
+    const auto aliasDb = [] (double hz) {
+        dsp::BodyDrive drive;
+        auto x = sineAt (hz, rate48);
+        for (auto& sample : x)
+            sample = drive.process (sample, 24.0f);
+        return measure::inharmonicDb (x, rate48, hz, 4800);
+    };
+    const auto bareClipDb = [] (double hz) {
+        auto x = sineAt (hz, rate48);
+        for (auto& sample : x)
+            sample = std::clamp (sample * 15.849f, -1.0f, 1.0f);
+        return measure::inharmonicDb (x, rate48, hz, 4800);
+    };
+    CHECK (aliasDb (200.0) < -80.0);
+    CHECK (bareClipDb (196.0) > -80.0); // shows the measurement can fail
+    for (int note = 46; note <= 62; ++note) // A#1 to D3: the tails a body plays, and the metric holds from about 120 Hz
+    {
+        INFO ("note " << note);
+        CHECK (aliasDb (hzOf (note)) < -80.0);
+    }
+}
+
+TEST_CASE ("body_06d_alias_limit_holds_in_the_plugin")
+{
+    PluginProcessor plugin;
+    set (plugin, { { "body_tune", 55.0f }, { "body_pitch_amount", 0.0f }, { "body_amp_hold", 500.0f }, { "body_drive", 24.0f } });
+    CHECK (measure::inharmonicDb (renderNote (plugin, rate48, 0.45), rate48, hzOf (55.0), 4800) < -80.0);
+}
+
+TEST_CASE ("body_06e_drive_adds_no_reported_latency_and_starts_on_the_note")
+{
+    const auto render = [] (float drive, float velocity) {
+        PluginProcessor plugin;
+        set (plugin, { { "body_pitch_amount", 0.0f }, { "body_drive", drive } });
+        CHECK (plugin.getLatencySamples() == 0);
+        return renderNote (plugin, rate48, 0.1, 1000, 36, velocity);
+    };
+    const auto driven = render (24.0f, 1.0f);
+    for (int i = 0; i <= 1000; ++i)
+        REQUIRE (driven[static_cast<size_t> (i)] == 0.0f);
+    CHECK (measure::firstSound (driven) <= 1002);
+
+    // The minimum-phase filters do delay what clips, by less than 0.1 ms: compare where 0.1 is first crossed, unclipped.
+    const auto crossing = [] (const std::vector<float>& x) {
+        return static_cast<int> (std::find_if (x.begin(), x.end(), [] (float v) { return v > 0.1f; }) - x.begin());
+    };
+    const auto clean = crossing (render (0.0f, 0.5f));
+    const auto wet = crossing (render (24.0f, 0.0315f));
+    INFO ("clean " << clean << ", wet " << wet);
+    CHECK (wet >= clean - 1);
+    CHECK (wet - clean <= 5);
+}
+
+TEST_CASE ("body_06f_a_drive_jump_does_not_click")
+{
+    for (const auto [from, to] : { std::pair { 0.0f, 24.0f }, std::pair { 24.0f, 0.0f } })
+    {
+        PluginProcessor plugin;
+        set (plugin, { { "body_tune", static_cast<float> (noteC1) }, { "body_pitch_amount", 0.0f }, { "body_amp_decay", 2000.0f },
+                       { "body_amp_shape", -100.0f }, { "body_drive", from } });
+        // Velocity 0.05 at 24 dB peaks at 0.79, below clipping.
+        const auto audio = renderNote (plugin, rate48, 0.35, 0, 36, 0.05f, { 256 }, [&, moved = false] (double t) mutable {
+            if (t >= 0.2 && ! std::exchange (moved, true))
+                setParam (plugin, "body_drive", to);
+        });
+        INFO ("from " << from);
+        CHECK (measure::largestStepBetween (audio, rate48, 0.2, 0.35) < 0.05f);
+    }
+}
+
+TEST_CASE ("eng_04_drive_and_filter_sound_the_same_at_every_sample_rate")
+{
+    struct Result { double hz; double third; float peak; };
+    const auto measureAt = [] (double rate) {
+        PluginProcessor plugin;
+        set (plugin, { { "body_tune", static_cast<float> (noteC1) }, { "body_pitch_amount", 0.0f }, { "body_amp_hold", 400.0f },
+                       { "body_drive", 12.0f }, { "body_filter_cutoff", 1000.0f }, { "body_filter_res", 30.0f } });
+        const auto audio = renderNote (plugin, rate, 0.4);
+        const auto hz = hzOf (noteC1);
+        return Result { measure::frequency (audio, rate, 0.1, 0.35), measure::toneLevel (audio, rate, 3.0 * hz, 0.1, 0.35) / measure::toneLevel (audio, rate, hz, 0.1, 0.35), measure::peak (audio) };
+    };
+    const auto base = measureAt (44100.0);
+    for (auto rate : { 48000.0, 96000.0, 192000.0 })
+    {
+        const auto other = measureAt (rate);
+        INFO ("rate " << rate);
+        CHECK (other.hz == Catch::Approx (base.hz).epsilon (0.01));
+        CHECK (other.third == Catch::Approx (base.third).epsilon (0.02));
+        CHECK (other.peak == Catch::Approx (base.peak).epsilon (0.02));
+    }
+}
+
 // --- ENG-01, ENG-03, ENG-04, ENG-06 with BODY ---
 
 TEST_CASE ("eng_01a_every_body_parameter_is_automatable")
@@ -449,7 +707,9 @@ TEST_CASE ("eng_01c_a_full_range_knob_jump_does_not_click")
                               Jump { "body_amp_attack", 50.0f, 0.0f, 0.02 },
                               Jump { "body_amp_hold", 500.0f, 0.0f, 0.2 },
                               Jump { "body_amp_decay", 2000.0f, 10.0f, 0.2 },
-                              Jump { "body_amp_shape", 100.0f, -100.0f, 0.2 } })
+                              Jump { "body_amp_shape", 100.0f, -100.0f, 0.2 },
+                              Jump { "body_filter_cutoff", 20000.0f, 20.0f, 0.2 },
+                              Jump { "body_filter_cutoff", 20.0f, 20000.0f, 0.2 } })
     {
         PluginProcessor plugin;
         set (plugin, { { "body_tune", static_cast<float> (noteC1) }, { "body_pitch_amount", 12.0f }, { "body_pitch_decay", 1000.0f },
@@ -512,13 +772,18 @@ TEST_CASE ("eng_01e_knob_text_survives_a_round_trip")
     CHECK (findParam (plugin, "body_pitch_amount")->getText (findParam (plugin, "body_pitch_amount")->convertTo0to1 (36.0f), 32) == "36.0");
     CHECK (findParam (plugin, "body_amp_shape")->getText (findParam (plugin, "body_amp_shape")->convertTo0to1 (-30.0f), 32) == "-30");
     CHECK (findParam (plugin, "body_wave")->getText (findParam (plugin, "body_wave")->convertTo0to1 (1.5f), 32) == "1.50");
+    CHECK (findParam (plugin, "body_drive")->getText (findParam (plugin, "body_drive")->convertTo0to1 (6.0f), 32) == "6.0");
+    CHECK (findParam (plugin, "body_filter_cutoff")->getText (findParam (plugin, "body_filter_cutoff")->convertTo0to1 (632.0f), 32) == "632");
+    CHECK (findParam (plugin, "body_filter_res")->getText (findParam (plugin, "body_filter_res")->convertTo0to1 (30.0f), 32) == "30");
+    CHECK (findParam (plugin, "body_filter_env")->getText (findParam (plugin, "body_filter_env")->convertTo0to1 (2.5f), 32) == "2.5");
 }
 
 TEST_CASE ("eng_03_same_settings_render_identically_at_any_block_size")
 {
     const Settings shaped { { "body_wave", 1.5f }, { "body_tune", 40.0f }, { "body_pitch_amount", 50.0f }, { "body_pitch_decay", 37.0f },
                             { "body_pitch_shape", 40.0f }, { "body_amp_attack", 3.0f }, { "body_amp_hold", 11.0f },
-                            { "body_amp_decay", 150.0f }, { "body_amp_shape", -30.0f } };
+                            { "body_amp_decay", 150.0f }, { "body_amp_shape", -30.0f }, { "body_drive", 12.0f },
+                            { "body_filter_cutoff", 900.0f }, { "body_filter_res", 30.0f }, { "body_filter_env", 3.0f } };
     PluginProcessor a, b;
     set (a, shaped);
     set (b, shaped);
@@ -616,7 +881,8 @@ TEST_CASE ("eng_06b_parameter_ids_and_defaults_are_as_specified")
     const std::map<juce::String, float> defaults {
         { "body_wave", 0.0f }, { "body_tune", static_cast<float> (noteA0) }, { "body_pitch_amount", 36.0f },
         { "body_pitch_decay", 100.0f }, { "body_pitch_shape", 0.0f }, { "body_amp_attack", 0.0f },
-        { "body_amp_hold", 0.0f }, { "body_amp_decay", 400.0f }, { "body_amp_shape", 0.0f }
+        { "body_amp_hold", 0.0f }, { "body_amp_decay", 400.0f }, { "body_amp_shape", 0.0f },
+        { "body_drive", 0.0f }, { "body_filter_cutoff", 20000.0f }, { "body_filter_res", 0.0f }, { "body_filter_env", 0.0f }
     };
     for (const auto& [id, value] : defaults)
     {

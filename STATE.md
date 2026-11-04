@@ -20,8 +20,7 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 ## Waiting for a run in Bitwig (gate 3, owner)
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.
-- VS1-10: `tests/manual/vs1-10-new-defaults.md`. Its step 5 warns of clicks on fast notes: fixed by VS1-05, so on this build they should be gone.
-- VS1-05: `tests/manual/vs1-05-playing.md`
+- VS1-10: `tests/manual/vs1-10-new-defaults.md`. Its step 5 warns of clicks on fast notes: fixed by VS1-05, so on this build they should be gone. Its step 6 needs an older project, and the owner has none: leave it out, as in the VS1-05 run.
 
 ## Blocked
 - none

@@ -1,0 +1,10 @@
+# Round 6 (HARN-09): the filter (IDEA-02, BODY-05). Round 5 chose none and named hard as the most convincing,
+# saying the others did not seem well done. A sine leaves a filter nothing to do, so the filters run on hard at
+# 12 dB. Hard at 3 and 6 dB without a filter test whether 12 dB was simply too much.
+base body_tune=A0 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90
+option plain
+option hard3 sat_kind=hard sat_drive=3
+option hard6 sat_kind=hard sat_drive=6
+option svf12 sat_kind=hard sat_drive=12 filter_kind=svf12 filter_cutoff=300 filter_env=4 filter_decay=150 filter_res=0.2
+option svf24 sat_kind=hard sat_drive=12 filter_kind=svf24 filter_cutoff=300 filter_env=4 filter_decay=150 filter_res=0.2
+option ladder sat_kind=hard sat_drive=12 filter_kind=ladder filter_cutoff=300 filter_env=4 filter_decay=150 filter_res=0.2

@@ -1,0 +1,10 @@
+# Round 8 (HARN-09): the check; what is dropped here is not a choice (HARN-09c). Round 7 heard hardly any difference
+# between notes, so the chain stays on A0. Also holds what the rounds left open: tone-one from round 4, and a
+# filter on the low saturation, because round 6 heard the filters only at 12 dB.
+base body_tune=A0
+option chain-hard6 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90 sat_kind=hard sat_drive=6
+option chain-hard3 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90 sat_kind=hard sat_drive=3
+option chain-no-sat body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90
+option tone-one-hard6 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 click_kind=tone click_hz=3000 click_ms=4 click_db=-6 dip_at=1.5 dip_width=1.5 dip_db=-10 sat_kind=hard sat_drive=6
+option chain-hard6-svf24 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90 sat_kind=hard sat_drive=6 filter_kind=svf24 filter_cutoff=300 filter_env=4 filter_decay=150 filter_res=0.2
+option today

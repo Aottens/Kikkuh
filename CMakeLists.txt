@@ -80,6 +80,12 @@ target_compile_definitions(kikkuh-measure PRIVATE $<TARGET_PROPERTY:Kikkuh,COMPI
 target_include_directories(kikkuh-measure PRIVATE tests)
 target_link_libraries(kikkuh-measure PRIVATE KikkuhCode)
 
+# HARN-07: turns a round file into blind, level-matched WAVs for listening. A development tool, not shipped.
+add_executable(kikkuh-round tools/kikkuh-round.cpp)
+target_compile_definitions(kikkuh-round PRIVATE $<TARGET_PROPERTY:Kikkuh,COMPILE_DEFINITIONS>)
+target_include_directories(kikkuh-round PRIVATE tests tools)
+target_link_libraries(kikkuh-round PRIVATE KikkuhCode)
+
 enable_testing()
 file(GLOB_RECURSE KIKKUH_TESTS CONFIGURE_DEPENDS tests/*.cpp)
 add_executable(Tests ${KIKKUH_TESTS})
@@ -87,6 +93,8 @@ target_compile_definitions(Tests PRIVATE $<TARGET_PROPERTY:Kikkuh,COMPILE_DEFINI
 target_compile_definitions(Tests PRIVATE "KIKKUH_RENDER_PATH=\"$<TARGET_FILE:kikkuh-render>\"")
 target_link_libraries(Tests PRIVATE KikkuhCode Catch2::Catch2WithMain)
 target_compile_definitions(Tests PRIVATE "KIKKUH_MEASURE_PATH=\"$<TARGET_FILE:kikkuh-measure>\"")
-add_dependencies(Tests kikkuh-render kikkuh-measure)
+target_compile_definitions(Tests PRIVATE "KIKKUH_ROUND_PATH=\"$<TARGET_FILE:kikkuh-round>\"")
+target_include_directories(Tests PRIVATE tools)
+add_dependencies(Tests kikkuh-render kikkuh-measure kikkuh-round)
 include(${catch2_SOURCE_DIR}/extras/Catch.cmake)
 catch_discover_tests(Tests DISCOVERY_MODE PRE_TEST)

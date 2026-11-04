@@ -14,7 +14,8 @@ way round; a task status named in a row ("VS1-02 todo") must match BACKLOG
 | Id | Idea | Status | Phase | Module |
 | --- | --- | --- | --- | --- |
 | IDEA-01 | Send and return for external rumble | triaged, VS4-01 todo | after v1 | rumble |
-| IDEA-02 | A sound engine round, chosen by ear | backlog, VS1-09 todo | slice 1, before VS1-03 | body |
+| IDEA-02 | A sound engine round, chosen by ear | done, VS1-09 done | slice 1, before VS1-03 | body |
+| IDEA-03 | Tuning between notes | new | after v1, proposed | body |
 
 ### IDEA-01 — Send and return for external rumble
 The owner's idea: send the kick out to your own rumble chain and take the result back into Kikkuh.
@@ -36,5 +37,13 @@ the owner's. Proposal, after VS1-02 (`kikkuh-render`) and before VS1-03:
 
 VS1-08 chose four references and measured them: `docs/research/reference-kicks.md`.
 
-Open questions: is the character a filter and drive matter or also the oscillator;
-may hits vary a little like analog hardware, which ENG-03 now forbids.
+VS1-09 ran the rounds: `tests/manual/runs/2026-11-04-VS1-09.md`. The owner chose a fast sweep with a second stage, a
+start at full level and hard clipping at 6 dB, with no filter and no dents; criteria BODY-05, 06, 08, 09 and 10.
+
+Left open: is the character also the oscillator (the rounds kept the sine); may hits vary a little like analog
+hardware, which ENG-03 now forbids.
+
+### IDEA-03 — Tuning between notes
+References sit up to 44 cents between notes, and Tune has whole notes only. In VS1-09's round 7 the owner hardly
+heard -22 or +44 cents on single hits, so nothing was specced. Against a bass line it may matter. Open question: is
+that worth a Fine knob on the one panel?

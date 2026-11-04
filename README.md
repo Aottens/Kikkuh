@@ -5,7 +5,8 @@ the kick in your track with knobs, like on a subtractive synth.
 
 ## Status
 Very early. Kikkuh plays a synthesized kick that you shape with wave, tune, pitch and amp knobs in the
-host's generic editor. Filter, drive and the real panel come next. Plan in `BACKLOG.md`, handoff in
+host's generic editor. Drive, filter, a second sweep stage and new defaults, chosen by ear, come next, then the
+real panel. Plan in `BACKLOG.md`, handoff in
 `STATE.md`, scope in `specs/PRD.md`.
 
 ## What works today
@@ -19,6 +20,8 @@ host's generic editor. Filter, drive and the real panel come next. Plan in `BACK
   `build/kikkuh-render --out kick.wav body_tune=F#0 body_pitch_amount=60`.
 - `kikkuh-measure` prints the sweep, harmonics, first milliseconds and decay of a kick from a WAV or
   AIFF, and the nearest knob values: `build/kikkuh-measure kick.wav`.
+- `kikkuh-round` renders a round of variants as unnamed, equally loud WAVs for choosing by ear:
+  `build/kikkuh-round tests/manual/rounds/8-check.txt --out rounds/8 --seed 108`.
 
 ## Build and run
 

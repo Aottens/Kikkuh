@@ -86,3 +86,17 @@ their names, hashes and numbers, not the audio.
 work needs.
 
 **Reversal trigger:** a test in CI needs the audio itself, with a licence that allows it.
+
+## 2026-11-04 — BODY's sound chosen by ear in blind rounds (owner)
+
+**Decision:** new defaults and engine as chosen in VS1-09: a fast sweep with a second stage, a start at full level,
+hard clipping at 6 dB after the amp, no filter by default. Saturation and filter variants are compared at -20 LUFS over
+400 ms from the first sound.
+
+**Alternatives considered:** defaults fitted to a reference's numbers, which round 1 turned down; soft or asymmetric
+saturation; a start at zero, which BODY-01c asked for; matching by peak, which would judge the loudest as best.
+
+**Reasoning:** the owner's ears decide (IDEA-02). Preference was weak in some rounds, so the knobs stay and the choice
+is checked in a loop in VS1-07.
+
+**Reversal trigger:** the CORE-01 run in VS1-07 fails on these defaults.

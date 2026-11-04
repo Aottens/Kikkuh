@@ -20,7 +20,8 @@ feeds RUMBLE, whose output joins before MASTER. The bus layout is decided before
   `dsp/`. Nothing here decides how a kick sounds.
 - `tools/`: `kikkuh-render` (HARN-04), a development tool that plays a note through the processor
   with `tests/Render.h` and writes a WAV. `kikkuh-measure` (HARN-05) prints the numbers of `tests/Measure.h`
-  for a WAV or AIFF. Neither is shipped.
+  for a WAV or AIFF. `kikkuh-round` (HARN-07) turns a round file into blind, level-matched WAVs with the
+  sketch voice `tools/Sketch.h` (HARN-08), plain C++ on `dsp::MorphOsc` for listening only. None is shipped.
 - `source/ui/` (from the first panel task): the editor. Reads state and sends parameter changes; no DSP.
 
 ## Threads

@@ -300,3 +300,57 @@ TEST_CASE ("harn_05e_a_real_second_stage_of_the_sweep_is_not_an_outlier")
     }
     CHECK (measure::fitPitch (x, checkRate).outliers <= 2);
 }
+
+TEST_CASE ("harn_07a_loudness_reads_known_signals")
+{
+    const auto sineAt = [] (double rate, double hz, double level = 1.0) {
+        std::vector<float> x (static_cast<size_t> (rate));
+        for (size_t i = 0; i < x.size(); ++i)
+            x[i] = static_cast<float> (level * std::sin (2.0 * std::numbers::pi * hz * static_cast<double> (i) / rate));
+        return x;
+    };
+
+    SECTION ("997 Hz at 0 dBFS on both channels is 0 LUFS, as in BS.1770")
+    {
+        const auto x = sineAt (48000.0, 997.0);
+        CHECK (measure::loudness (x, x, 48000.0) == Catch::Approx (0.0).margin (0.1));
+    }
+    SECTION ("on one channel it is 3 LU less")
+    {
+        const auto x = sineAt (48000.0, 997.0);
+        CHECK (measure::loudness (x, std::vector<float> (x.size(), 0.0f), 48000.0) == Catch::Approx (-3.01).margin (0.1));
+    }
+    SECTION ("20 dB down reads 20 LU down")
+    {
+        const auto x = sineAt (48000.0, 997.0, 0.1);
+        CHECK (measure::loudness (x, x, 48000.0) == Catch::Approx (-20.0).margin (0.1));
+    }
+    SECTION ("the K filter at 48 kHz has the coefficients printed in BS.1770")
+    {
+        const auto k = measure::kWeighting (48000.0);
+        const std::array<double, 5> shelf { 1.53512485958697, -2.69169618940638, 1.19839281085285, -1.69065929318241, 0.73248077421585 };
+        const std::array<double, 5> high { 1.0, -2.0, 1.0, -1.99004745483398, 0.99007225036621 };
+        for (size_t i = 0; i < 5; ++i)
+        {
+            CHECK (k.shelf[i] == Catch::Approx (shelf[i]).margin (0.0001));
+            CHECK (k.highpass[i] == Catch::Approx (high[i]).margin (0.0001));
+        }
+    }
+    SECTION ("the same sine reads the same at every rate")
+    {
+        const auto at48 = sineAt (48000.0, 100.0);
+        const auto base = measure::loudness (at48, at48, 48000.0);
+        for (const auto rate : { 44100.0, 192000.0 })
+        {
+            const auto x = sineAt (rate, 100.0);
+            CHECK (measure::loudness (x, x, rate) == Catch::Approx (base).margin (0.1));
+        }
+    }
+    SECTION ("silence in front changes nothing: the window starts at time zero")
+    {
+        auto x = sineAt (48000.0, 997.0);
+        const auto base = measure::loudness (x, x, 48000.0);
+        x.insert (x.begin(), 4800, 0.0f);
+        CHECK (measure::loudness (x, x, 48000.0) == Catch::Approx (base).margin (0.1));
+    }
+}

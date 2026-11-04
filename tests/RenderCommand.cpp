@@ -294,7 +294,7 @@ TEST_CASE ("harn_04f_an_unknown_id_lists_the_valid_ids")
     for (const auto* id : { "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
                             "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
                             "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
-                            "body_sweep2_amount", "body_sweep2_decay", "body_start" })
+                            "body_sweep2_amount", "body_sweep2_decay", "body_start", "play_velocity", "play_key_track" })
         CHECK (result.output.contains (id));
 }
 

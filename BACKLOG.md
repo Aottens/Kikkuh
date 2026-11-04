@@ -18,7 +18,7 @@ Slices below 0 are a proposal: their `Builds:` lines and full criteria come when
 
 ## Slice 1 — a kick you can shape with knobs
 
-Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03, VS1-10 (owner, 2026-11-03; VS1-10 from VS1-09). The rest are proposed when they start.
+Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03, VS1-10 (owner, 2026-11-03; VS1-10 from VS1-09). Proposed next, one build each: VS1-05, VS1-04, VS1-06 (L). The rest are proposed when they start.
 
 | Id | Task (one sentence, verifiable) | Spec ids | Size | Status |
 | --- | --- | --- | --- | --- |

@@ -4,13 +4,19 @@
 #include <functional>
 #include <vector>
 
-// Plays one note through a plugin offline, block by block, as a host would, and returns both
-// channels. kikkuh-render (HARN-04) uses this too, so the tests measure what it writes. Block sizes cycle through `blockSizes`, so tests also cover uneven host blocks.
+struct MidiAt
+{
+    int sample;
+    juce::MidiMessage message;
+};
+
+// Plays MIDI events through a plugin offline, block by block, as a host would, and returns both
+// channels. Block sizes cycle through `blockSizes`, so tests also cover uneven host blocks.
 // `beforeBlock`, if given, runs before every block with the seconds rendered so far: a knob move.
-inline juce::AudioBuffer<float> renderNoteStereo (juce::AudioProcessor& plugin, double sampleRate, double seconds,
-                                      int noteOnSample = 0, int note = 36, float velocity = 1.0f,
-                                      std::vector<int> blockSizes = { 256 },
-                                      const std::function<void (double)>& beforeBlock = {})
+inline juce::AudioBuffer<float> renderEventsStereo (juce::AudioProcessor& plugin, double sampleRate, double seconds,
+                                                    const std::vector<MidiAt>& events,
+                                                    std::vector<int> blockSizes = { 256 },
+                                                    const std::function<void (double)>& beforeBlock = {})
 {
     int largest = 1;
     for (auto size : blockSizes)
@@ -30,8 +36,9 @@ inline juce::AudioBuffer<float> renderNoteStereo (juce::AudioProcessor& plugin, 
         if (beforeBlock)
             beforeBlock (done / sampleRate);
         midi.clear();
-        if (noteOnSample >= done && noteOnSample < done + size)
-            midi.addEvent (juce::MidiMessage::noteOn (1, note, velocity), noteOnSample - done);
+        for (const auto& event : events)
+            if (event.sample >= done && event.sample < done + size)
+                midi.addEvent (event.message, event.sample - done);
 
         buffer.setSize (2, size, false, false, true);
         plugin.processBlock (buffer, midi);
@@ -40,6 +47,15 @@ inline juce::AudioBuffer<float> renderNoteStereo (juce::AudioProcessor& plugin, 
         done += size;
     }
     return out;
+}
+
+// Plays one note. kikkuh-render (HARN-04) uses this too, so the tests measure what it writes.
+inline juce::AudioBuffer<float> renderNoteStereo (juce::AudioProcessor& plugin, double sampleRate, double seconds,
+                                      int noteOnSample = 0, int note = 36, float velocity = 1.0f,
+                                      std::vector<int> blockSizes = { 256 },
+                                      const std::function<void (double)>& beforeBlock = {})
+{
+    return renderEventsStereo (plugin, sampleRate, seconds, { { noteOnSample, juce::MidiMessage::noteOn (1, note, velocity) } }, std::move (blockSizes), beforeBlock);
 }
 
 // The left channel of renderNoteStereo.

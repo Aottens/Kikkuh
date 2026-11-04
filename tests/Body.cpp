@@ -16,11 +16,12 @@ namespace
 constexpr int noteC0 = 24, noteA0 = 33, noteC1 = 36, noteC2 = 48, noteC3 = 60;
 constexpr double rate48 = 48000.0;
 
-const std::initializer_list<const char*> bodyIds {
+const std::initializer_list<const char*> knobIds {
     "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
     "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
     "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
-    "body_sweep2_amount", "body_sweep2_decay", "body_start"
+    "body_sweep2_amount", "body_sweep2_decay", "body_start",
+    "play_velocity", "play_key_track"
 };
 
 juce::RangedAudioParameter* findParam (juce::AudioProcessor& plugin, const juce::String& id)
@@ -965,7 +966,7 @@ TEST_CASE ("body_10c_eng_04_holds_at_every_start")
 TEST_CASE ("eng_01a_every_body_parameter_is_automatable")
 {
     BarePlugin plugin;
-    for (auto* id : bodyIds)
+    for (auto* id : knobIds)
     {
         INFO (id);
         auto* p = findParam (plugin, id);
@@ -1060,7 +1061,7 @@ TEST_CASE ("eng_01d_process_block_does_not_allocate_while_knobs_move")
     int allocations = 0;
     for (int block = 0; block < 200; ++block)
     {
-        for (auto* id : bodyIds)
+        for (auto* id : knobIds)
             if (auto* p = findParam (plugin, id))
                 p->setValueNotifyingHost (static_cast<float> (block % 10) / 9.0f);
         buffer.setSize (2, block % 2 == 0 ? 512 : 37, false, false, true);
@@ -1078,7 +1079,7 @@ TEST_CASE ("eng_01d_process_block_does_not_allocate_while_knobs_move")
 TEST_CASE ("eng_01e_knob_text_survives_a_round_trip")
 {
     BarePlugin plugin;
-    for (auto* id : bodyIds)
+    for (auto* id : knobIds)
     {
         auto* p = findParam (plugin, id);
         REQUIRE (p != nullptr);
@@ -1141,7 +1142,7 @@ TEST_CASE ("eng_06a_state_restores_every_parameter")
     PluginProcessor saved;
     std::map<juce::String, float> values;
     float position = 0.1f;
-    for (auto* id : bodyIds)
+    for (auto* id : knobIds)
     {
         auto* p = findParam (saved, id);
         REQUIRE (p != nullptr);
@@ -1154,7 +1155,7 @@ TEST_CASE ("eng_06a_state_restores_every_parameter")
 
     PluginProcessor restored;
     restored.setStateInformation (state.getData(), static_cast<int> (state.getSize()));
-    for (auto* id : bodyIds)
+    for (auto* id : knobIds)
     {
         INFO (id);
         CHECK (findParam (restored, id)->getValue() == Catch::Approx (values[id]));
@@ -1202,14 +1203,15 @@ TEST_CASE ("eng_06a_a_state_without_parameters_gives_defaults")
 TEST_CASE ("eng_06b_parameter_ids_and_defaults_are_as_specified")
 {
     PluginProcessor plugin;
-    CHECK (plugin.getParameters().size() == static_cast<int> (bodyIds.size()));
+    CHECK (plugin.getParameters().size() == static_cast<int> (knobIds.size()));
 
     const std::map<juce::String, float> defaults {
         { "body_wave", 0.0f }, { "body_tune", static_cast<float> (noteA0) }, { "body_pitch_amount", 60.0f },
         { "body_pitch_decay", 40.0f }, { "body_pitch_shape", 30.0f }, { "body_amp_attack", 0.0f },
         { "body_amp_hold", 0.0f }, { "body_amp_decay", 400.0f }, { "body_amp_shape", 0.0f },
         { "body_drive", 6.0f }, { "body_filter_cutoff", 20000.0f }, { "body_filter_res", 0.0f }, { "body_filter_env", 0.0f },
-        { "body_sweep2_amount", 6.0f }, { "body_sweep2_decay", 300.0f }, { "body_start", 90.0f }
+        { "body_sweep2_amount", 6.0f }, { "body_sweep2_decay", 300.0f }, { "body_start", 90.0f },
+        { "play_velocity", 100.0f }, { "play_key_track", 0.0f }
     };
     for (const auto& [id, value] : defaults)
     {
@@ -1218,4 +1220,358 @@ TEST_CASE ("eng_06b_parameter_ids_and_defaults_are_as_specified")
         REQUIRE (p != nullptr);
         CHECK (p->convertFrom0to1 (p->getDefaultValue()) == Catch::Approx (value).margin (0.01f));
     }
+}
+
+// PLAY: specs/modules/play.md
+namespace
+{
+struct Hit
+{
+    double seconds;
+    int note = noteC1, velocity = 127;
+};
+
+std::vector<float> renderHits (juce::AudioProcessor& plugin, double rate, double seconds, const std::vector<Hit>& hits,
+                               std::vector<int> blockSizes = { 256 }, const std::function<void (double)>& beforeBlock = {})
+{
+    std::vector<MidiAt> events;
+    for (const auto& hit : hits)
+        events.push_back ({ static_cast<int> (std::lround (hit.seconds * rate)),
+                            juce::MidiMessage::noteOn (1, hit.note, static_cast<juce::uint8> (hit.velocity)) });
+    const auto out = renderEventsStereo (plugin, rate, seconds, events, std::move (blockSizes), beforeBlock);
+    return { out.getReadPointer (0), out.getReadPointer (0) + out.getNumSamples() };
+}
+
+std::vector<float> firstSeconds (const std::vector<float>& x, double rate, double seconds)
+{
+    return { x.begin(), x.begin() + static_cast<std::ptrdiff_t> (seconds * rate) };
+}
+
+float stepAround (const std::vector<float>& x, double rate, double seconds)
+{
+    return measure::largestStepBetween (x, rate, seconds - 0.001, seconds + 0.02);
+}
+
+// PLAY-03a: the new note rises slowly, so a step can only come from the kick it replaces. C3 has 0.034 of its own at 48 kHz.
+const Settings heldTone { { "body_tune", noteC3 }, { "body_pitch_amount", 0.0f }, { "body_amp_attack", 5.0f }, { "body_amp_hold", 500.0f } };
+
+constexpr float noClick = 0.05f; // ENG-01c
+}
+
+TEST_CASE ("play_01a_each_note_starts_on_its_own_sample")
+{
+    for (auto sizes : { std::vector<int> { 4096 }, std::vector<int> { 1, 37, 512 } })
+    {
+        BarePlugin plugin;
+        set (plugin, { { "body_start", 90.0f }, { "body_amp_decay", 10.0f } });
+        // Two notes in one block for the 4096, with the first over by the time the second starts.
+        const auto x = renderHits (plugin, rate48, 0.05, { { 100.0 / rate48 }, { 1000.0 / rate48 } }, sizes);
+        CHECK (measure::firstSound (x) == 100);
+        CHECK (measure::firstSound ({ x.begin() + 700, x.end() }) == 300);
+    }
+}
+
+TEST_CASE ("play_01b_velocity_sets_the_level_with_an_amount_knob")
+{
+    const auto peakAt = [] (float amount, int velocity) {
+        BarePlugin plugin;
+        set (plugin, { { "body_start", 90.0f }, { "play_velocity", amount } });
+        return measure::peak (renderHits (plugin, rate48, 0.1, { { 0.0, noteC1, velocity } }));
+    };
+    for (const auto& [amount, level] : { std::pair { 100.0f, 0.504f }, std::pair { 50.0f, 0.752f }, std::pair { 0.0f, 1.0f } })
+    {
+        INFO (amount);
+        CHECK (peakAt (amount, 64) == Catch::Approx (level).epsilon (0.01));
+        CHECK (peakAt (amount, 127) == Catch::Approx (1.0f).epsilon (0.01));
+    }
+}
+
+TEST_CASE ("play_01c_a_softer_note_never_peaks_higher_at_the_default_drive")
+{
+    float previous = 0.0f;
+    for (int velocity : { 1, 32, 64, 96, 127 })
+    {
+        PluginProcessor plugin;
+        const auto level = measure::peak (renderHits (plugin, rate48, 0.1, { { 0.0, noteC1, velocity } }));
+        INFO (velocity);
+        CHECK (level >= previous);
+        previous = level;
+    }
+}
+
+TEST_CASE ("play_01d_the_kick_is_a_one_shot")
+{
+    const auto render = [] (std::vector<MidiAt> events) {
+        PluginProcessor plugin;
+        const auto out = renderEventsStereo (plugin, rate48, 0.6, events);
+        return std::vector<float> (out.getReadPointer (0), out.getReadPointer (0) + out.getNumSamples());
+    };
+    const auto on = juce::MidiMessage::noteOn (1, noteC1, static_cast<juce::uint8> (127));
+    const auto zero = juce::MidiMessage::noteOn (1, noteC1, static_cast<juce::uint8> (0));
+
+    const auto kick = render ({ { 0, on } });
+    CHECK (render ({ { 0, on }, { 4800, juce::MidiMessage::noteOff (1, noteC1) } }) == kick);
+    CHECK (render ({ { 0, on }, { 4800, zero } }) == kick);
+    CHECK (measure::peak (render ({ { 0, zero } })) == 0.0f);
+}
+
+TEST_CASE ("play_01e_moving_velocity_leaves_a_ringing_kick_alone")
+{
+    const auto render = [] (bool move) {
+        BarePlugin plugin;
+        set (plugin, { { "body_start", 90.0f }, { "body_amp_decay", 100.0f } });
+        return renderHits (plugin, rate48, 0.3, { { 0.0, noteC1, 64 }, { 0.2, noteC1, 64 } }, { 256 }, [&] (double now) {
+            if (move && now >= 0.05)
+                setParam (plugin, "play_velocity", 0.0f);
+        });
+    };
+    const auto moved = render (true), still = render (false);
+    CHECK (firstSeconds (moved, rate48, 0.19) == firstSeconds (still, rate48, 0.19));
+    CHECK (measure::peakBetween (moved, rate48, 0.2, 0.3) == Catch::Approx (1.0f).epsilon (0.01));
+    CHECK (measure::peakBetween (still, rate48, 0.2, 0.3) == Catch::Approx (0.504f).epsilon (0.01));
+}
+
+TEST_CASE ("play_02a_key_track_off_plays_the_same_kick_on_every_note")
+{
+    const auto render = [] (int note) {
+        PluginProcessor plugin;
+        return renderHits (plugin, rate48, 0.3, { { 0.0, note } });
+    };
+    const auto kick = render (noteC1);
+    for (int note : { noteC0, 45, noteC3 })
+        CHECK (render (note) == kick);
+}
+
+TEST_CASE ("play_02b_key_track_on_plays_the_note")
+{
+    for (int note : { noteC0, noteC1, 45, noteC3 })
+    {
+        BarePlugin plugin;
+        set (plugin, steady);
+        setParam (plugin, "play_key_track", 1.0f);
+        const auto x = renderHits (plugin, rate48, 1.2, { { 0.0, note } });
+        INFO (note);
+        CHECK (midiOf (measure::frequency (x, rate48, 0.2, 1.0)) == Catch::Approx (note).margin (0.1));
+    }
+}
+
+TEST_CASE ("play_02c_notes_outside_tunes_range_take_its_nearest_end")
+{
+    const auto render = [] (int note) {
+        PluginProcessor plugin;
+        setParam (plugin, "play_key_track", 1.0f);
+        return renderHits (plugin, rate48, 0.3, { { 0.0, note } });
+    };
+    CHECK (render (12) == render (noteC0));
+    CHECK (render (72) == render (noteC3));
+}
+
+TEST_CASE ("play_02d_key_track_on_does_not_use_tune")
+{
+    const auto render = [] (float tune) {
+        PluginProcessor plugin;
+        set (plugin, { { "play_key_track", 1.0f }, { "body_tune", tune } });
+        return renderHits (plugin, rate48, 0.3, { { 0.0, 45 } });
+    };
+    const auto kick = render (noteA0);
+    CHECK (render (noteC0) == kick);
+    CHECK (render (noteC3) == kick);
+}
+
+TEST_CASE ("play_02e_the_sweeps_run_on_top_of_the_note_and_times_do_not_follow_it")
+{
+    for (int note : { noteC1, noteC3 })
+    {
+        PluginProcessor plugin;
+        set (plugin, { { "play_key_track", 1.0f }, { "body_amp_decay", 2000.0f } });
+        const auto x = renderHits (plugin, rate48, 0.7, { { 0.0, note } });
+        for (double t : { 0.01, 0.075, 0.3, 0.5 })
+        {
+            const auto expected = note + 60.0 * curve (std::min (1.0, t / 0.04), 30.0) + 6.0 * curve (std::min (1.0, t / 0.3), 0.0);
+            INFO (note << " at " << t);
+            CHECK (midiOf (measure::pitchAt (x, rate48, t)) == Catch::Approx (expected).margin (0.5));
+        }
+    }
+
+    const auto render = [] (int note) {
+        PluginProcessor plugin;
+        setParam (plugin, "play_key_track", 1.0f);
+        return renderHits (plugin, rate48, 0.6, { { 0.0, note } });
+    };
+    const auto low = render (noteC1), high = render (noteC3);
+    for (double db : { -6.0, -20.0 })
+        CHECK (measure::secondsBelowDb (low, rate48, db) == Catch::Approx (measure::secondsBelowDb (high, rate48, db)).margin (0.008));
+}
+
+TEST_CASE ("play_02f_switching_key_track_leaves_a_ringing_kick_alone")
+{
+    const auto render = [] (bool move) {
+        BarePlugin plugin;
+        set (plugin, steady);
+        return renderHits (plugin, rate48, 1.0, { { 0.0, 45 }, { 0.2, 45 } }, { 256 }, [&] (double now) {
+            if (move && now >= 0.05)
+                setParam (plugin, "play_key_track", 1.0f);
+        });
+    };
+    const auto moved = render (true), still = render (false);
+    CHECK (firstSeconds (moved, rate48, 0.19) == firstSeconds (still, rate48, 0.19));
+    CHECK (midiOf (measure::frequency (moved, rate48, 0.4, 0.9)) == Catch::Approx (45.0).margin (0.1));
+    CHECK (midiOf (measure::frequency (still, rate48, 0.4, 0.9)) == Catch::Approx (static_cast<double> (noteA0)).margin (0.1));
+}
+
+TEST_CASE ("play_03a_the_old_kick_stops_without_a_click")
+{
+    for (double rate : { 44100.0, 48000.0, 96000.0, 192000.0 })
+        for (int i = 0; i < 16; ++i)
+        {
+            BarePlugin plugin;
+            set (plugin, heldTone);
+            const auto at = 0.1 + (i / 16.0) / hzOf (noteC3);
+            const auto x = renderHits (plugin, rate, 0.15, { { 0.0 }, { at } });
+            INFO (rate << " at " << at);
+            CHECK (stepAround (x, rate, at) < noClick);
+        }
+}
+
+TEST_CASE ("play_03b_a_retrigger_adds_no_click_to_the_hit")
+{
+    const auto check = [] (Settings settings) {
+        for (double gap : { 0.3, 0.075 }) // 200 BPM and its sixteenths
+        {
+            PluginProcessor plugin;
+            set (plugin, settings);
+            const auto x = renderHits (plugin, rate48, gap * 4.0 + 0.05, { { 0.0 }, { gap }, { gap * 2.0 }, { gap * 3.0 } });
+            const auto fromSilence = measure::largestStepBetween (x, rate48, 0.0, 0.02);
+            for (int hit = 1; hit < 4; ++hit)
+            {
+                INFO (gap << " hit " << hit);
+                CHECK (stepAround (x, rate48, gap * hit) <= fromSilence + noClick);
+            }
+        }
+    };
+    check ({});
+    check ({ { "body_start", 0.0f }, { "body_amp_decay", 2000.0f } });
+}
+
+TEST_CASE ("play_03c_the_filter_does_not_click_on_a_retrigger")
+{
+    for (int i = 0; i < 16; ++i)
+    {
+        BarePlugin plugin;
+        set (plugin, heldTone);
+        set (plugin, { { "body_filter_cutoff", 200.0f }, { "body_filter_env", 5.0f }, { "body_amp_hold", 0.0f },
+                       { "body_amp_decay", 2000.0f }, { "body_amp_shape", -100.0f } });
+        const auto at = 1.6 + (i / 16.0) / hzOf (noteC3);
+        const auto x = renderHits (plugin, rate48, 1.65, { { 0.0 }, { at } });
+        INFO (at);
+        CHECK (stepAround (x, rate48, at) < noClick);
+    }
+}
+
+TEST_CASE ("play_03d_a_retrigger_is_the_same_kick_after_50_ms")
+{
+    const auto check = [] (bool bare, Settings settings, Hit first, Hit second) {
+        for (double rate : { 44100.0, 48000.0, 192000.0 })
+        {
+            const auto render = [&] (const std::vector<Hit>& hits, double seconds) {
+                BarePlugin barePlugin;
+                PluginProcessor plainPlugin;
+                juce::AudioProcessor& plugin = bare ? static_cast<juce::AudioProcessor&> (barePlugin) : plainPlugin;
+                set (plugin, settings);
+                return renderHits (plugin, rate, seconds, hits);
+            };
+            const auto at = 0.3;
+            const auto retriggered = render ({ first, { at, second.note, second.velocity } }, at + 0.35);
+            const auto fromSilence = render ({ { 0.0, second.note, second.velocity } }, 0.35);
+            const auto skip = static_cast<size_t> (0.05 * rate);
+            const auto offset = static_cast<size_t> (std::lround (at * rate));
+            INFO (rate);
+            CHECK (measure::largestDifference (retriggered, offset + skip, fromSilence, skip, fromSilence.size() - skip) <= 0.001f);
+        }
+    };
+    for (bool bare : { false, true })
+    {
+        INFO (bare);
+        check (bare, {}, { 0.0 }, { 0.0 });
+        check (bare, {}, { 0.0 }, { 0.0, noteC1, 64 });
+        check (bare, { { "play_key_track", 1.0f } }, { 0.0, noteC1 }, { 0.0, 45 });
+    }
+}
+
+TEST_CASE ("play_03e_notes_that_pile_up_do_not_click")
+{
+    BarePlugin plugin;
+    set (plugin, heldTone);
+    const auto x = renderHits (plugin, rate48, 0.15, { { 0.0 }, { 0.1 }, { 0.101 }, { 0.102 }, { 0.103 }, { 0.104 } });
+    CHECK (measure::largestStepBetween (x, rate48, 0.099, 0.125) < noClick);
+}
+
+TEST_CASE ("play_03f_a_run_at_200_bpm_peaks_as_a_single_kick")
+{
+    PluginProcessor single, run;
+    const auto one = measure::peak (renderHits (single, rate48, 0.3, { { 0.0 } }));
+    const auto many = measure::peakBetween (renderHits (run, rate48, 1.2, { { 0.0 }, { 0.3 }, { 0.6 }, { 0.9 } }), rate48, 0.3, 1.2);
+    CHECK (std::abs (20.0 * std::log10 (many / one)) <= 0.5);
+}
+
+TEST_CASE ("eng_01d_process_block_does_not_allocate_in_a_run_of_retriggers")
+{
+    for (float keyTrack : { 0.0f, 1.0f })
+    {
+        PluginProcessor plugin;
+        setParam (plugin, "play_key_track", keyTrack);
+        plugin.prepareToPlay (rate48, 512);
+        juce::AudioBuffer<float> buffer (2, 512);
+        juce::MidiBuffer midi;
+        int allocations = 0;
+        for (int block = 0; block < 200; ++block)
+        {
+            midi.clear();
+            midi.addEvent (juce::MidiMessage::noteOn (1, 20 + block % 60, static_cast<juce::uint8> (1 + block % 127)), block % 512);
+            AllocationGuard guard;
+            plugin.processBlock (buffer, midi);
+            allocations += guard.count();
+        }
+        CHECK (allocations == 0);
+    }
+}
+
+TEST_CASE ("eng_01e_play_knob_text")
+{
+    PluginProcessor plugin;
+    auto* velocity = findParam (plugin, "play_velocity");
+    auto* keyTrack = findParam (plugin, "play_key_track");
+    REQUIRE (velocity != nullptr);
+    REQUIRE (keyTrack != nullptr);
+    CHECK (velocity->getText (velocity->convertTo0to1 (100.0f), 32) == "100");
+    CHECK (keyTrack->getText (0.0f, 32) == "Off");
+    CHECK (keyTrack->getText (1.0f, 32) == "On");
+}
+
+TEST_CASE ("eng_03_a_run_of_retriggers_renders_identically")
+{
+    const std::vector<Hit> hits { { 0.0 }, { 0.075 }, { 0.15, noteC1, 64 }, { 0.3 } };
+    PluginProcessor a, b;
+    CHECK (renderHits (a, rate48, 0.6, hits) == renderHits (b, rate48, 0.6, hits, { 1, 37, 512 }));
+}
+
+TEST_CASE ("eng_06a_a_state_without_the_play_knobs_gives_their_defaults")
+{
+    PluginProcessor saved;
+    juce::MemoryBlock state;
+    saved.getStateInformation (state);
+    auto xml = juce::AudioProcessor::getXmlFromBinary (state.getData(), static_cast<int> (state.getSize()));
+    REQUIRE (xml != nullptr);
+    REQUIRE (removeParamFromState (*xml, "play_velocity"));
+    REQUIRE (removeParamFromState (*xml, "play_key_track"));
+    juce::MemoryBlock old;
+    juce::AudioProcessor::copyXmlToBinary (*xml, old);
+
+    PluginProcessor restored;
+    set (restored, { { "play_velocity", 0.0f }, { "play_key_track", 1.0f } });
+    restored.setStateInformation (old.getData(), static_cast<int> (old.getSize()));
+    CHECK (valueOf (restored, "play_velocity") == Catch::Approx (100.0f));
+    CHECK (valueOf (restored, "play_key_track") == 0.0f);
+    PluginProcessor fresh;
+    CHECK (renderHits (restored, rate48, 0.3, { { 0.0, noteC1, 64 } }) == renderHits (fresh, rate48, 0.3, { { 0.0, noteC1, 64 } }));
 }

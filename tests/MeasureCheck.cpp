@@ -354,3 +354,10 @@ TEST_CASE ("harn_07a_loudness_reads_known_signals")
         CHECK (measure::loudness (x, x, 48000.0) == Catch::Approx (base).margin (0.1));
     }
 }
+
+TEST_CASE ("measure_largest_difference_lines_up_two_signals")
+{
+    const std::vector<float> a { 9.0f, 1.0f, 2.0f, 3.0f }, b { 1.0f, 2.5f, 3.0f };
+    CHECK (measure::largestDifference (a, 1, b, 0, 3) == 0.5f);
+    CHECK (measure::largestDifference (a, 1, b, 0, 1) == 0.0f);
+}

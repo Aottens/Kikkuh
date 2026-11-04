@@ -127,11 +127,15 @@ before-the-amp lost at 12 dB, and hard at 3 and 6 dB won over everything at 12 d
 - **BODY-06c** Drive leaves a low-level tail clean, because it comes after the amp: on the BODY-08 values, the tail's
   3rd harmonic stays below -60 dB, where the sketch measured -117 dB.
 - **BODY-06d** Alias limit, proposed: on a 200 Hz sine at Drive 24 dB at 48 kHz, energy away from the harmonics
-  stays at least 80 dB below the total, as the sketch does at 4x on 192 kHz. A clip's corners fold back at any
-  oversampling for a high tone, so this limit is for the low tones a body plays.
+  stays at least 80 dB below the total. A clip's corners fold back at any oversampling for a high tone, so this limit
+  is for the low tones a body plays. 200 Hz alone cannot fail: it repeats every 240 samples at 48 kHz, so its aliases
+  land on its harmonics, and a bare clip passes. So the limit also holds for each note from A#1 to D3; a bare clip
+  reaches -74 dB on G2. Below about 120 Hz `inharmonicDb`'s mask covers the whole spectrum and it reads nothing.
 - **BODY-06e** Zero latency (ENG-02): the reported latency stays 0 and the first sound stays on the note's sample.
   The sketch's linear-phase filters are not an answer to this: use minimum-phase oversampling or anti-derivative
   anti-aliasing, chosen in VS1-03. If 80 dB cannot be reached that way, VS1-03 reports the best it reaches and stops for the owner.
+  The output is exactly 0 before the note's sample and starts within two samples of it. What goes through the clip is
+  delayed by less than 0.1 ms (5 samples at 48 kHz) against Drive 0.
 - **BODY-06f** ENG-01 holds: a full-range jump during a tail stays below a step of 0.05 at a level below clipping.
 
 ### BODY-08 New defaults (VS1-10)
@@ -187,7 +191,7 @@ The owner's choice in round 8. The note and the amp stay as they are.
 
 ### Engineering, as it applies to BODY
 
-- **ENG-01a** All nine parameters are automatable by the host.
+- **ENG-01a** All parameters are automatable by the host.
 - **ENG-01b** Every parameter is smoothed per sample. A knob jump settles within 1 % of its range within
   50 ms, at every sample rate. A knob moved while no kick rings holds in full from the next kick's
   first sample, without a glide.
@@ -197,10 +201,10 @@ The owner's choice in round 8. The note and the amp stay as they are.
   a low pitch.
 - **ENG-01d** `processBlock` does not allocate while parameters change.
 - **ENG-01e** Each knob's text survives a round trip, as clap-validator demands: value to text, back to
-  a value and to text again gives the same text. Times and semitones show one decimal, Shape whole
-  percents and Wave two decimals.
-- **ENG-06a** The state restores all nine parameters. A state that lacks a parameter (an older version,
+  a value and to text again gives the same text. Times, semitones, Drive and Env Amount show one decimal,
+  Shape and Resonance whole percents, Cutoff whole Hz and Wave two decimals.
+- **ENG-06a** The state restores all parameters. A state that lacks a parameter (an older version,
   or a VS0-01 project) gives that parameter its default. The state keeps its version, and
   `setStateInformation` runs saved states through a migration step that later versions can extend.
-- **ENG-06b** A test lists the nine ids as written above, so renaming one fails.
+- **ENG-06b** A test lists the ids as written above, so renaming one fails.
 - **ENG-03, ENG-04** hold with the new voice, also at non-default knob values.

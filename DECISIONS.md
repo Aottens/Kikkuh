@@ -4,6 +4,22 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-04 — Drive: 8x minimum-phase oversampling, and a stricter alias test (VS1-03)
+
+**Decision:** the clip runs at 8x between inverse Chebyshev low-passes (order 12, 60 dB, stop edge at the base Nyquist),
+blended in over the first 0.5 dB, so Drive 0 is sample-identical to the input. BODY-06d is also tested on every note
+from A#1 to D3, because 200 Hz alone cannot fail at 48 kHz: its aliases land on its harmonics. The filter is likewise
+out of the path at the top of Cutoff.
+
+**Alternatives considered:** first-order anti-derivative anti-aliasing (measured -89 dB on 196 Hz but -56 dB on 262 Hz);
+4x (-76 dB worst case); a steeper or higher stop edge (flatter or shorter, but below 80 dB or duller above 15 kHz).
+
+**Reasoning:** measured worst case -84 dB from A#1 to D3 at Drive 24, -0.14 dB at 18 kHz, against a bare clip's -74 dB on
+G2. The cost is that what passes the clip arrives 3 samples late at 48 kHz, about 0.06 ms, while the reported latency
+stays 0 (ENG-02). The 80 dB limit is still a proposal; higher tones alias more (-68 dB at C5), as BODY-06d expects.
+
+**Reversal trigger:** the owner hears aliasing or a late attack in the VS1-03 or CORE-01 run, or CPU becomes a problem.
+
 ## 2026-11-03 — BODY: finite curves, notes with C3 = 60, wavetables (owner approved the spec)
 
 **Decision:** Decay is the whole length of a curve `(1 - x)^k`, which arrives at exactly 0. Note

@@ -3,7 +3,8 @@
 namespace
 {
 constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
-                                     "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape" };
+                                     "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
+                                     "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env" };
 }
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
@@ -67,13 +68,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
     add ("body_amp_hold", "Hold", ranged (0.0f, 500.0f, 50.0f), 0.0f, "ms", 1);
     add ("body_amp_decay", "Amp Decay", ranged (10.0f, 2000.0f, 200.0f), 400.0f, "ms", 1);
     add ("body_amp_shape", "Amp Shape", ranged (-100.0f, 100.0f), 0.0f, "%", 0);
+    add ("body_drive", "Drive", ranged (0.0f, 24.0f), 0.0f, "dB", 1);
+    add ("body_filter_cutoff", "Cutoff", ranged (20.0f, 20000.0f, 632.0f), 20000.0f, "Hz", 0);
+    add ("body_filter_res", "Resonance", ranged (0.0f, 100.0f), 0.0f, "%", 0);
+    add ("body_filter_env", "Env Amount", ranged (0.0f, 8.0f), 0.0f, "oct", 1);
     return layout;
 }
 
 dsp::BodyParams PluginProcessor::readParams() const
 {
     return { raw[0]->load(), raw[1]->load(), raw[2]->load(), raw[3]->load(), raw[4]->load(),
-             raw[5]->load(), raw[6]->load(), raw[7]->load(), raw[8]->load() };
+             raw[5]->load(), raw[6]->load(), raw[7]->load(), raw[8]->load(),
+             raw[9]->load(), raw[10]->load(), raw[11]->load(), raw[12]->load() };
 }
 
 void PluginProcessor::prepareToPlay (double sampleRate, int)

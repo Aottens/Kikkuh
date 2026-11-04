@@ -4,8 +4,8 @@ A kick and rumble instrument plugin for techno, acid and trance: get from the ki
 the kick in your track with knobs, like on a subtractive synth.
 
 ## Status
-Very early. Kikkuh plays a synthesized kick that you shape with wave, tune, pitch and amp knobs in the
-host's generic editor. Drive, filter, a second sweep stage and new defaults, chosen by ear, come next, then the
+Very early. Kikkuh plays a synthesized kick that you shape with wave, tune, pitch, amp, drive and filter knobs in
+the host's generic editor. A second sweep stage and new defaults, chosen by ear, come next, then the
 real panel. Plan in `BACKLOG.md`, handoff in
 `STATE.md`, scope in `specs/PRD.md`.
 
@@ -15,6 +15,8 @@ real panel. Plan in `BACKLOG.md`, handoff in
 - Wave morphs from sine through triangle and saw to square, band-limited.
 - Tune sets the note the kick lands on; Pitch Amount, Decay and Shape set the sweep down to it.
 - Attack, Hold, Decay and Shape set the level.
+- Drive clips the kick hard after the amp, oversampled and still at zero reported latency.
+- A 24 dB low-pass with Cutoff, Resonance and Env Amount follows the drive.
 - All knobs are automatable and smoothed, and they come back with your project.
 - `kikkuh-render` writes a kick to a WAV without a DAW, for example
   `build/kikkuh-render --out kick.wav body_tune=F#0 body_pitch_amount=60`.

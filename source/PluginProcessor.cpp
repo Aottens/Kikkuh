@@ -5,7 +5,8 @@ namespace
 constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
                                      "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
                                      "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
-                                     "body_sweep2_amount", "body_sweep2_decay", "body_start" };
+                                     "body_sweep2_amount", "body_sweep2_decay", "body_start",
+                                     "play_velocity", "play_key_track" };
 }
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
@@ -76,6 +77,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
     add ("body_filter_cutoff", "Cutoff", ranged (20.0f, 20000.0f, 632.0f), 20000.0f, "Hz", 0);
     add ("body_filter_res", "Resonance", ranged (0.0f, 100.0f), 0.0f, "%", 0);
     add ("body_filter_env", "Env Amount", ranged (0.0f, 8.0f), 0.0f, "oct", 1);
+    add ("play_velocity", "Velocity", ranged (0.0f, 100.0f), 100.0f, "%", 0);
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "play_key_track", 1 }, "Key Track", false));
     return layout;
 }
 
@@ -117,7 +120,11 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
 
         const auto message = metadata.getMessage();
         if (message.isNoteOn())
-            voice.trigger (message.getFloatVelocity());
+        {
+            // PLAY-01/02: both knobs are read here, at the note-on, and never smoothed.
+            const auto level = 1.0f - raw[16]->load() * 0.01f * (1.0f - message.getFloatVelocity());
+            voice.trigger (level, raw[17]->load() > 0.5f ? juce::jlimit (24, 60, message.getNoteNumber()) : -1);
+        }
     }
     render (position, buffer.getNumSamples());
 }

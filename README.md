@@ -10,7 +10,8 @@ Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 
 ## What works today
 - Builds as VST3, AU and CLAP and installs itself into `~/Library/Audio/Plug-Ins/`.
-- A MIDI note plays a kick, sample-accurately, at zero latency.
+- A MIDI note plays a kick, sample-accurately, at zero latency. A new note cuts off the one that rings without a click.
+- Velocity sets how much the note's velocity changes its level; Key Track makes the kick play the note you play.
 - Wave morphs from sine through triangle and saw to square, band-limited.
 - Tune sets the note the kick lands on; Pitch Amount, Decay and Shape set the sweep down to it, and Sweep 2 Amount and
   Decay add a slower second stage.

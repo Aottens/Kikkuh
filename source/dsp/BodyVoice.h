@@ -80,14 +80,20 @@ public:
         tailLeft = 0;
         drive.reset();
         filter.prepare (newSampleRate);
+        residualDecay = static_cast<float> (std::exp (-1.0 / (residualSeconds * sampleRate)));
+        residual = envResidual = lastDry = lastEnv = 0.0f;
     }
 
-    // ponytail: a hard restart clicks when a kick is still ringing; PLAY-03 replaces this.
-    void trigger (float newVelocity)
+    // `level` is the note's whole gain (PLAY-01); `keyedNote` >= 0 replaces Tune for this note (PLAY-02).
+    // PLAY-03: the last value of the kick it replaces fades away on top of the new note, in `dry` and in the filter envelope.
+    void trigger (float level, int keyedNote = -1)
     {
         if (! active)
             values = targets; // next() skips smoothing while idle, so the knobs are stale
-        velocity = newVelocity;
+        residual = lastDry;
+        envResidual = active ? lastEnv - 1.0f : 0.0f; // a new note starts its envelope at 1; from silence it opens at once
+        velocity = level;
+        keyNote = keyedNote;
         osc.reset (startPhase);
         pitchProgress = 0.0;
         pitch2Progress = 0.0;
@@ -106,7 +112,7 @@ public:
 
         for (size_t i = 0; i < values.size(); ++i)
             values[i] += static_cast<float> (smoothing) * (targets[i] - values[i]);
-        const auto wave = values[0], tune = values[1], amount = values[2], pitchMs = values[3], pitchShape = values[4],
+        const auto wave = values[0], tune = keyNote >= 0 ? static_cast<float> (keyNote) : values[1], amount = values[2], pitchMs = values[3], pitchShape = values[4],
                    attackMs = values[5], holdMs = values[6], decayMs = values[7], ampShape = values[8];
 
         float dry = 0.0f;
@@ -158,6 +164,17 @@ public:
         else
             --tailLeft; // drive and filter ring out on silence
 
+        dry += residual;
+        envCurve += envResidual;
+        lastDry = dry;
+        lastEnv = static_cast<float> (envCurve);
+        residual *= residualDecay;
+        envResidual *= residualDecay;
+        if (std::abs (residual) < 1e-7f)
+            residual = 0.0f;
+        if (std::abs (envResidual) < 1e-7f)
+            envResidual = 0.0f;
+
         // ponytail: the tail runs a fixed 5 s after the kick; a resonant filter with a long ring needs a level gate.
         return filter.process (drive.process (dry, values[9]), std::exp2 (values[10]), values[11], values[12], static_cast<float> (envCurve));
     }
@@ -171,7 +188,7 @@ private:
         ampProgress = 0.0;
     }
 
-    static constexpr double tailSeconds = 5.0;
+    static constexpr double tailSeconds = 5.0, residualSeconds = 0.003; // PLAY-03: the retrigger fade
 
     MorphOsc osc;
     BodyDrive drive;
@@ -179,7 +196,8 @@ private:
     long tailLeft = 0;
     std::array<float, 15> targets {}, values {};
     double sampleRate = 44100.0, smoothing = 0.0, pitchProgress = 0.0, pitch2Progress = 0.0, ampProgress = 0.0, startPhase = 0.0;
-    float velocity = 0.0f;
+    float velocity = 0.0f, residual = 0.0f, envResidual = 0.0f, residualDecay = 0.0f, lastDry = 0.0f, lastEnv = 0.0f;
+    int keyNote = -1;
     Stage stage = Stage::attack;
     bool active = false;
 };

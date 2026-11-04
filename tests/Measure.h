@@ -40,6 +40,15 @@ inline float largestStep (const std::vector<float>& x)
     return step;
 }
 
+// The largest difference between `count` samples of two signals, each from its own start.
+inline float largestDifference (const std::vector<float>& a, size_t fromA, const std::vector<float>& b, size_t fromB, size_t count)
+{
+    float difference = 0.0f;
+    for (size_t i = 0; i < count; ++i)
+        difference = std::max (difference, std::abs (a[fromA + i] - b[fromB + i]));
+    return difference;
+}
+
 // Frequency between two times, from interpolated rising zero crossings. For a tail, not a sweep.
 inline double frequency (const std::vector<float>& x, double sampleRate, double fromSeconds, double toSeconds)
 {

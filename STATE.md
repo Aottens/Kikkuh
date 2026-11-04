@@ -28,7 +28,6 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 - none
 
 ## Owner decisions open
-- PLAY-03b's limit rewritten in VS1-04 (`DECISIONS.md`): the old one held by chance. Confirm it with the PR; step 6 of the VS1-04 run is what your ears say.
 - CORE-01 asks for three reference kicks and VS1-08 chose four: run it with all four, or pick three. Needed by VS1-07.
 - Is tuning between notes worth a Fine knob (IDEA-03)? Proposed: after v1.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

@@ -22,7 +22,7 @@ short sweep on a low note bends by up to 534 cents at the note-on.
 
 **Reversal trigger:** the VS1-04 run hears the bend as a change for the worse, or CORE-01 fails on it.
 
-## 2026-11-04 — PLAY-03b holds for every gap, with a limit from what Drive does (VS1-04, owner to confirm)
+## 2026-11-04 — PLAY-03b holds for every gap, with a limit from what Drive does (VS1-04, owner)
 
 **Decision:** a second note 50 to 310 ms after the first stays below a step of 1.15 at the defaults, and 0.75 at Start 0 with
 Amp Decay 2000 ms.

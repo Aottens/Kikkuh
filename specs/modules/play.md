@@ -75,7 +75,7 @@ retrigger adds, not on that hit. 200 BPM is a note every 300 ms, and its sixteen
   0.75 at Start 0 with Amp Decay 2000 ms. Without the fade they reach 1.17 and 1.05. The defaults' limit lies above a hit from
   silence (0.73), because Drive clips the old kick's negative swing just before the new hit: with the anchor on or off, 13
   of 104 gaps exceed that. The first wording, within 0.05 of a hit from silence at 75 and 300 ms only, held by chance
-  (changed in VS1-04, owner to confirm).
+  (changed in VS1-04, confirmed by the owner, 2026-11-04).
 - **PLAY-03c** The filter does not click. On the values of PLAY-03a, with Cutoff 200 Hz, Env Amount 5 octaves, Hold 0,
   Amp Decay 2000 ms and Amp Shape -100, a second note at 1.6 s, where the envelope has fallen to 0.2 and the cutoff lags
   the tone, keeps the largest step below 0.05. A sine, because a saw has large steps by nature once the filter opens.

@@ -1,0 +1,9 @@
+# Round 4 (HARN-09): an uneven first 20 ms (comparison item 4). Round 3 left two starts, tone and phase, so each
+# is heard with each shape. The two dents follow Phat Valid: -10 dB in 1-2 ms, -4.9 dB in 5-10 ms.
+base body_tune=A0 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300
+option tone-even click_kind=tone click_hz=3000 click_ms=4 click_db=-6
+option tone-one click_kind=tone click_hz=3000 click_ms=4 click_db=-6 dip_at=1.5 dip_width=1.5 dip_db=-10
+option tone-two click_kind=tone click_hz=3000 click_ms=4 click_db=-6 dip_at=1.5 dip_width=1.5 dip_db=-10 dip2_at=7.5 dip2_width=5 dip2_db=-5
+option phase-even start_phase=90
+option phase-one start_phase=90 dip_at=1.5 dip_width=1.5 dip_db=-10
+option phase-two start_phase=90 dip_at=1.5 dip_width=1.5 dip_db=-10 dip2_at=7.5 dip2_width=5 dip2_db=-5

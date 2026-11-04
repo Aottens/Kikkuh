@@ -1,0 +1,9 @@
+# Round 5 (HARN-09): saturation (IDEA-02, comparison item 8). Round 4 left phase-even and tone-one. The base is
+# phase-even, the one with the fewest additions; five options on two bases would not fit a round, so tone-one
+# comes back in round 8.
+base body_tune=A0 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90
+option none
+option soft-after sat_kind=soft sat_drive=12
+option soft-before sat_kind=soft sat_drive=12 sat_place=before_amp
+option asym sat_kind=asym sat_drive=12
+option hard sat_kind=hard sat_drive=12

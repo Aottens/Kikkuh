@@ -1,0 +1,7 @@
+# Round 3 (HARN-09): a hard start (comparison item 1). Base: round 2's tick-6st, the one choice that holds
+# both majorities of the three named (tick twice, 6 st twice).
+base body_tune=A0 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300
+option none
+option phase start_phase=90
+option tone click_kind=tone click_hz=3000 click_ms=4 click_db=-6
+option noise click_kind=noise click_ms=4 click_db=-6

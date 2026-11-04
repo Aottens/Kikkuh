@@ -26,6 +26,9 @@ fails, the panel changes before anything else gets built.
 - BODY-06 Drive on the voice, before the filter.
 - BODY-07 Tail anchor, on by default: changing pitch knobs before the anchor leaves the phase of
   the tail unchanged, sample for sample. Off means classic behaviour.
+- BODY-08 Defaults chosen by ear in VS1-09: a fast sweep, a second stage, a start at full level and a little drive.
+- BODY-09 A second sweep stage: Sweep 2 Amount and Sweep 2 Decay.
+- BODY-10 Start: the phase of the oscillator at the note-on.
 
 **CLICK** and **TOP**, two identical parallel sections
 - LAYER-01 Source is a built-in noise or transient, or your own sample by drag and drop.

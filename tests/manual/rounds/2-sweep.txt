@@ -1,0 +1,9 @@
+# Round 2 (HARN-09): a sweep in two stages (comparison item 2). Round 1 left two starting points, today and
+# more-tick, so each is heard with each sweep: the answer settles both questions in one round.
+base body_tune=A0
+option today-one
+option today-3st sweep2_amount=3 sweep2_decay=650
+option today-6st sweep2_amount=6 sweep2_decay=300
+option tick-one body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30
+option tick-3st body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=3 sweep2_decay=650
+option tick-6st body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300

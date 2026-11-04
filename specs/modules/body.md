@@ -1,8 +1,9 @@
 # Module spec: body (BODY)
 
 Status: **approved by the owner (2026-11-03). Scope: BODY-01..04, built by VS1-01.** BODY-05..07
-(filter, drive, tail anchor) come with VS1-03 and VS1-04. This voice replaces the fixed test kick of
-BUILD-06.
+(filter, drive, tail anchor) come with VS1-03 and VS1-04. BODY-05, 06, 08, 09 and 10 are written from the
+owner's choices in VS1-09 (`tests/manual/runs/2026-11-04-VS1-09.md`) and approved with that PR. This voice
+replaces the fixed test kick of BUILD-06.
 
 Time runs in seconds, so everything below holds from 44.1 to 192 kHz (ENG-04). Unless a criterion
 says otherwise, "level" is at velocity 127 with the other knobs at their defaults. Velocity scales
@@ -90,6 +91,99 @@ length, not a time constant: when Decay has passed, the curve has arrived.
   Shape -100, 0, +100, within 10 %, or within 0.005 for the last.
 - **BODY-04e** A kick ends without a click: the largest step in the last 5 ms of a kick stays below
   that of the sine at full level, at every Decay and Shape value tested.
+
+### BODY-05 Filter (VS1-03)
+
+No filter won a round in VS1-09, so its type is a proposal: a 24 dB low-pass, the usual subtractive-synth one, the
+second-order sections as in `sketch::Filter`'s `svf24`. It is open by default, so it changes nothing until
+it is used, and it runs after drive.
+
+| Id | Knob | Range | Default | Knob feel |
+| --- | --- | --- | --- | --- |
+| `body_filter_cutoff` | Cutoff | 20..20000 Hz | 20000 Hz | centre at 632 Hz |
+| `body_filter_res` | Resonance | 0..100 % | 0 % | linear |
+| `body_filter_env` | Env Amount | 0..8 octaves | 0 | linear |
+
+- **BODY-05a** At the defaults a sine sweep to 5 kHz stays within 0.1 dB of a render without the filter.
+- **BODY-05b** The filter falls 24 dB per octave within 3 dB from 4 to 8 times the cutoff, and at Resonance 0 the
+  -3 dB point is within 10 % of Cutoff, at 44.1, 48 and 192 kHz (ENG-04).
+- **BODY-05c** Env Amount opens the cutoff by that many octaves at the note-on and falls along the amp decay's
+  curve. On a saw with Cutoff 200 Hz and Env 5, energy above 1 kHz is over 1 % in 0-20 ms and below 0.1 % once Amp
+  Decay is half over.
+- **BODY-05d** ENG-01 holds for the three knobs: a full-range jump during a tail stays below a step of 0.05.
+
+### BODY-06 Drive (VS1-03)
+
+The owner chose hard clipping at a low amount, after the amp and before the filter. Soft, asymmetric and
+before-the-amp lost at 12 dB, and hard at 3 and 6 dB won over everything at 12 dB.
+
+| Id | Knob | Range | Default | Knob feel |
+| --- | --- | --- | --- | --- |
+| `body_drive` | Drive | 0..24 dB | 0 dB (6 dB with BODY-08) | linear |
+
+- **BODY-06a** Drive multiplies the signal after the amp and clips it at ±1. At 0 dB a signal below full scale
+  stays within 0.01 dB of a render without Drive.
+- **BODY-06b** On a steady A0 sine at Drive 12 dB the 3rd harmonic is above -40 dB and the 2nd below -60 dB.
+- **BODY-06c** Drive leaves a low-level tail clean, because it comes after the amp: on the BODY-08 values, the tail's
+  3rd harmonic stays below -60 dB, where the sketch measured -117 dB.
+- **BODY-06d** Alias limit, proposed: on a 200 Hz sine at Drive 24 dB at 48 kHz, energy away from the harmonics
+  stays at least 80 dB below the total, as the sketch does at 4x on 192 kHz. A clip's corners fold back at any
+  oversampling for a high tone, so this limit is for the low tones a body plays.
+- **BODY-06e** Zero latency (ENG-02): the reported latency stays 0 and the first sound stays on the note's sample.
+  The sketch's linear-phase filters are not an answer to this: use minimum-phase oversampling or anti-derivative
+  anti-aliasing, chosen in VS1-03. If 80 dB cannot be reached that way, VS1-03 reports the best it reaches and stops for the owner.
+- **BODY-06f** ENG-01 holds: a full-range jump during a tail stays below a step of 0.05 at a level below clipping.
+
+### BODY-08 New defaults (VS1-10)
+
+The owner's choice in round 8. The note and the amp stay as they are.
+
+| Knob | Today | New |
+| --- | --- | --- |
+| Pitch Amount | 36 | 60 |
+| Pitch Decay | 100 ms | 40 ms |
+| Pitch Shape | 0 | +30 |
+| Sweep 2 Amount (BODY-09) | | 6 st |
+| Sweep 2 Decay (BODY-09) | | 300 ms |
+| Start (BODY-10) | | 90 degrees |
+| Drive | 0 dB | 6 dB |
+
+- **BODY-08a** A kick at the defaults measures as the sketch's `chain-hard6` did, within 50 cents or 10 %: 89 Hz at 20
+  ms, 61 Hz at 100 ms, 56 Hz at 200 ms; -6 dB at 134 ms and -20 dB at 241 ms; 6.9 % of its energy between 300 Hz and
+  1 kHz in 5-20 ms, within 2 percentage points.
+- **BODY-08b** Its loudness (HARN-07a) is -6.6 LUFS at velocity 127, within 0.5 LU, and `step_1ms` above -10 dB.
+- **BODY-08c** It ends without a click, with the sweep on: the largest step in its last 5 ms stays below that of a
+  sine at full level.
+- **BODY-08d** A project saved before this change keeps the values it was saved with (ENG-06a), including the new
+  knobs, which take the value that leaves its sound as it was: Sweep 2 Amount 0, Start 0, Drive 0.
+- **BODY-08e** With the panel from VS1-06 the CORE-01 test runs on these defaults (VS1-07).
+
+### BODY-09 A sweep in two stages (VS1-10)
+
+| Id | Knob | Range | Default | Knob feel |
+| --- | --- | --- | --- | --- |
+| `body_sweep2_amount` | Sweep 2 Amount | 0..24 semitones | 0 (6 with BODY-08) | linear |
+| `body_sweep2_decay` | Sweep 2 Decay | 1..2000 ms | 300 ms | centre at 200 ms |
+
+- **BODY-09a** The pitch is `Tune + Amount * g(pitch) + Sweep 2 Amount * g(sweep 2)`, with `g` the curve of this module
+  at Shape 0 for Sweep 2. With Amount 12, Decay 50 ms, Sweep 2 3 st and 650 ms, it follows that within 50 cents at
+  10, 75, 300 and 500 ms.
+- **BODY-09b** The kick ends on Tune, within 0.5 %, once both have passed. Sweep 2 Amount 0 is sample-identical to
+  a render without this stage.
+- **BODY-09c** BODY-02d's readout takes the second stage into account, within 10 cents of a measured render.
+- **BODY-09d** ENG-01 holds for both knobs.
+
+### BODY-10 Start phase (VS1-10)
+
+| Id | Knob | Range | Default | Knob feel |
+| --- | --- | --- | --- | --- |
+| `body_start` | Start | 0..90 degrees | 0 (90 with BODY-08) | linear |
+
+- **BODY-10a** Start is the oscillator's phase at the note-on. At 90 with Attack 0 the first sample is at full level,
+  and `step_1ms` is above -10 dB; at 0 it behaves as BODY-01c and BODY-04a say, which hold only for Start 0.
+- **BODY-10b** The step at the note-on is the sound, not a fault: at 90 it is a single hit from silence on the note's
+  exact sample. Retriggering a ringing kick is PLAY-03's to settle (VS1-05).
+- **BODY-10c** ENG-03 and ENG-04 hold at every Start.
 
 ### Engineering, as it applies to BODY
 

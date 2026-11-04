@@ -1,6 +1,6 @@
 # Module spec: harness (HARN)
 
-Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-03), built by VS1-02. HARN-05 and HARN-06 approved by the owner (2026-11-03), built by VS1-08; the owner chose four references (2026-11-04). HARN-07..09 approved by the owner (2026-11-04), built by VS1-09.**
+Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-03), built by VS1-02. HARN-05 and HARN-06 approved by the owner (2026-11-03), built by VS1-08; the owner chose four references (2026-11-04). HARN-07..09 approved by the owner (2026-11-04), built and run by VS1-09.**
 
 ## Acceptance criteria
 
@@ -179,7 +179,7 @@ Status: **HARN-01..03 built with VS0-01. HARN-04 approved by the owner (2026-11-
   | 3 | Hard start | none; `start_phase=90`; a tone click; a noise click | item 1 |
   | 4 | First 20 ms | even; the two dents of Phat Valid; one dent | item 4 |
   | 5 | Saturation | none; soft after amp; soft before amp; asymmetric; hard | IDEA-02, item 8 |
-  | 6 | Filter | off; `svf12`; `svf24`; `ladder`. If round 5 chose none, this round runs on soft saturation and says so, because a sine leaves a filter nothing to do | IDEA-02, BODY-05 |
+  | 6 | Filter | off; `svf12`; `svf24`; `ladder`. If round 5 chose none, the filters run on the saturation the owner found most convincing, and the round says so, because a sine leaves a filter nothing to do; milder amounts of that saturation may be added as options | IDEA-02, BODY-05 |
   | 7 | Tuning between notes | on A0; -22 cents; +44 cents. The question is whether a difference is heard at all | item 3 |
   | 8 | Check | all choices together; the same without the last addition; the same without the saturation or filter chosen; today's default | shows that the choices hold together |
 

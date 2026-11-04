@@ -1,0 +1,6 @@
+# Round 7 (HARN-09): tuning between notes (comparison item 3). Base: the chain so far, with hard at 6 dB from
+# round 6, which chose hard at 3 and 6 dB and none of the filters. The question: is a difference heard at all?
+base body_tune=A0 body_pitch_amount=60 body_pitch_decay=40 body_pitch_shape=30 sweep2_amount=6 sweep2_decay=300 start_phase=90 sat_kind=hard sat_drive=6
+option on-note
+option minus22 tune_cents=-22
+option plus44 tune_cents=44

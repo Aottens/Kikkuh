@@ -129,3 +129,14 @@ gone anyway; moving `BodyParams` to the new defaults, which changes the "today" 
 **Reasoning:** BODY-08d, and the VS1-09 rounds stay repeatable from their seed.
 
 **Reversal trigger:** the sketch and its rounds are deleted, or the owner wants a VS0-01 project treated otherwise.
+
+## 2026-11-04 — The peak may move with the sample rate below Start 90 (owner)
+
+**Decision:** with Drive on below Start 90, the peak may move by up to 0.75 dB between 44.1 and 192 kHz (BODY-10c). The
+default Start 90 stays held to 1 %, the other Starts to 10 %, and pitch and loudness hold at every Start.
+
+**Alternatives considered:** making the top of the Drive filters independent of the sample rate.
+
+**Reasoning:** the default is not affected, and pitch and loudness hold.
+
+**Reversal trigger:** the owner hears a difference between sample rates, or a limiter in the Master section depends on the peak.

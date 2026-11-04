@@ -192,7 +192,8 @@ The owner's choice in round 8. The note and the amp stay as they are.
   exact sample. Retriggering a ringing kick is PLAY-03's to settle (VS1-05).
 - **BODY-10c** ENG-03 and ENG-04 hold at every Start. With Drive on below Start 90, measured: pitch and loudness hold,
   and the peak moves by up to 0.75 dB between 44.1 and 192 kHz (+0.89 against +0.14 dBFS at Start 0, Drive 6), because
-  the clip's first corners fall high in the sweep. At the default Start 90 it stays within 0.01 dB of +1.17 dBFS.
+  the clip's first corners fall high in the sweep. At the default Start 90 it stays within 0.01 dB of +1.17 dBFS. The owner accepted
+  this (2026-11-04).
 
 ### Engineering, as it applies to BODY
 

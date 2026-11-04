@@ -24,7 +24,6 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 - none
 
 ## Owner decisions open
-- With Drive on below Start 90 the peak moves by up to 0.75 dB between 44.1 and 192 kHz (BODY-10c), while pitch and loudness hold. Accept it, or make the Drive filters' top independent of the rate? Proposed: accept, since the default is not affected.
 - CORE-01 asks for three reference kicks and VS1-08 chose four: run it with all four, or pick three. Needed by VS1-07.
 - Is tuning between notes worth a Fine knob (IDEA-03)? Proposed: after v1.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

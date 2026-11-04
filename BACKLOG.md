@@ -27,7 +27,7 @@ Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03, VS1-10
 | VS1-08 | Reference kicks chosen by the owner (four) are measured (sweep, harmonics, first milliseconds), and a written comparison says what BODY lacks. | IDEA-02, CORE-01, HARN-05, 06 | M | done (2026-11-04, #4) |
 | VS1-09 | The owner chooses saturation, filter and curve variants and new defaults in blind, level-matched listening rounds, and the choices are written down as criteria for VS1-03. | IDEA-02, HARN-07..09 | L | done (2026-11-04, #5; run `tests/manual/runs/2026-11-04-VS1-09.md`) |
 | VS1-03 | BODY's filter and drive work as VS1-09 chose, and a test shows drive at full stays below the alias limit of BODY-06d, or the owner agrees another. | BODY-05, 06 | M | gate3: `tests/manual/vs1-03-drive-filter.md` |
-| VS1-10 | The second sweep stage and Start work and the defaults are the ones chosen in VS1-09, and a test measures them against its numbers. | BODY-08, 09, 10 | M | todo |
+| VS1-10 | The second sweep stage and Start work and the defaults are the ones chosen in VS1-09, and a test measures them against its numbers. | BODY-08, 09, 10 | M | gate3: `tests/manual/vs1-10-new-defaults.md` |
 | VS1-04 | With the tail anchor on, changing pitch knobs leaves the tail sample-identical in a test; off restores classic behaviour. | BODY-07 | M | todo |
 | VS1-05 | Velocity, key tracking and retrigger work, and a test shows no step above an agreed size when a kick retriggers at 200 BPM. | PLAY-01..03 | M | todo |
 | VS1-06 | One panel of real knobs in signal-flow order replaces the generic editor, with the audition pad and loop. | FAST-01, 05 | L | todo |

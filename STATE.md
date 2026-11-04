@@ -1,22 +1,24 @@
 # Kikkuh — State
 
-_Last updated: 2026-11-04 (VS1-03)_
+_Last updated: 2026-11-04 (VS1-10)_
 
 This file is the handoff: where we are, what is next, what waits. It is not a log.
 
 ## Current focus
-BODY has Drive and a filter (VS1-03), both doing nothing at their defaults. What the owner chose in VS1-09 is not fully
-in the plugin yet: the second sweep stage, Start and the new defaults are VS1-10, and BODY-05's filter type is still a
-proposal. The panel is still the generic editor, so the tail readout (BODY-02d) is not visible until VS1-06.
+BODY now plays what the owner chose in VS1-09: a sweep in two stages, a start at full level and 6 dB of hard clipping
+by default, and it measures as the sketch did. Older projects keep their sound (state version 2). BODY-05's filter type
+is still a proposal. The panel is still the generic editor, so the tail readout (BODY-02d) is not visible until VS1-06.
+At the defaults a kick peaks at +1.17 dBFS at velocity 127, and nothing limits it until the Master section (VS3-01).
 clap-validator warns that scanning takes 410 ms against its 100 ms guideline; not a failure, watch it.
 
 ## Next
-1. VS1-10: the second sweep stage, Start and the new defaults. With Drive at 6 dB by default, tests that read the bare
-   voice (BODY-01, 03 and 04, such as BODY-04c's exact zero) must set Drive 0, because the oversampling filters delay
-   and ring.
+1. Propose the next build from VS1-04, VS1-05 and VS1-06. Tests that read the bare voice use `BarePlugin` in
+   `tests/Body.cpp`: at the defaults the signal passes the oversampling filters, which delay and ring.
 
 ## Waiting for a run in Bitwig (gate 3, owner)
-- VS1-03: `tests/manual/vs1-03-drive-filter.md`
+- VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
+  (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.
+- VS1-10: `tests/manual/vs1-10-new-defaults.md`
 
 ## Blocked
 - none

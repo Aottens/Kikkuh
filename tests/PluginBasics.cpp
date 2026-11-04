@@ -19,6 +19,9 @@ TEST_CASE ("build_06_note_on_sounds_on_its_exact_sample")
     for (auto sizes : { std::vector<int> { 256 }, std::vector<int> { 64 }, std::vector<int> { 1, 37, 512 } })
     {
         PluginProcessor plugin;
+        for (auto* p : plugin.getParameters())
+            if (const auto id = dynamic_cast<juce::RangedAudioParameter*> (p)->getParameterID(); id == "body_start" || id == "body_drive")
+                p->setValueNotifyingHost (0.0f); // the voice itself: BODY-10 and BODY-06e cover the defaults
         const auto audio = renderNote (plugin, 48000.0, 0.1, 1000, 36, 1.0f, sizes);
         CHECK (measure::firstSound (audio) == 1001); // sample 1000 is sin (0)
         CHECK (measure::peak (audio) > 0.5f);

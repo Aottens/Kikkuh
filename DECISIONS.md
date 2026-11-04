@@ -116,3 +116,27 @@ saturation; a start at zero, which BODY-01c asked for; matching by peak, which w
 is checked in a loop in VS1-07.
 
 **Reversal trigger:** the CORE-01 run in VS1-07 fails on these defaults.
+
+## 2026-11-04 — Old projects migrate to the sound they had; a VS0-01 project takes the defaults (VS1-10)
+
+**Decision:** state version 2. A version 1 state that holds knobs gets Sweep 2 Amount 0, Start 0 and Drive 0 where it
+lacks them, and keeps what it has. A VS0-01 state holds no knobs and takes the new defaults. `dsp::BodyParams` keeps
+its member defaults at the sound before BODY-08; the plugin's defaults live in `createLayout`.
+
+**Alternatives considered:** migrating a VS0-01 state as well, which gives a mix nobody chose while its fixed kick is
+gone anyway; moving `BodyParams` to the new defaults, which changes the "today" option of the VS1-09 rounds.
+
+**Reasoning:** BODY-08d, and the VS1-09 rounds stay repeatable from their seed.
+
+**Reversal trigger:** the sketch and its rounds are deleted, or the owner wants a VS0-01 project treated otherwise.
+
+## 2026-11-04 — The peak may move with the sample rate below Start 90 (owner)
+
+**Decision:** with Drive on below Start 90, the peak may move by up to 0.75 dB between 44.1 and 192 kHz (BODY-10c). The
+default Start 90 stays held to 1 %, the other Starts to 10 %, and pitch and loudness hold at every Start.
+
+**Alternatives considered:** making the top of the Drive filters independent of the sample rate.
+
+**Reasoning:** the default is not affected, and pitch and loudness hold.
+
+**Reversal trigger:** the owner hears a difference between sample rates, or a limiter in the Master section depends on the peak.

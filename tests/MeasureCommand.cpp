@@ -82,7 +82,7 @@ void write (juce::AudioFormat& format, const juce::AudioBuffer<float>& audio, co
 TEST_CASE ("harn_05_measures_a_body_render")
 {
     TempDir temp;
-    const auto output = measured (renderKick (temp.dir.getChildFile ("k.wav"), { "body_tune=A0", "body_pitch_amount=36", "body_pitch_decay=100", "body_pitch_shape=0", "body_amp_decay=800", "body_amp_shape=0" }));
+    const auto output = measured (renderKick (temp.dir.getChildFile ("k.wav"), { "body_tune=A0", "body_pitch_amount=36", "body_pitch_decay=100", "body_pitch_shape=0", "body_amp_decay=800", "body_amp_shape=0", "body_sweep2_amount=0", "body_start=0", "body_drive=0" }));
 
     // BODY-01d: a sine peaks between 0.9 and 1.0.
     CHECK (value (output, "peak_dbfs").getDoubleValue() < 0.1);
@@ -156,7 +156,7 @@ TEST_CASE ("harn_05c_a_short_tail_says_so")
 TEST_CASE ("harn_05_reads_aiff_and_mono_16_bit")
 {
     TempDir temp;
-    const auto audio = read (renderKick (temp.dir.getChildFile ("k.wav"), {}));
+    const auto audio = read (renderKick (temp.dir.getChildFile ("k.wav"), { "body_sweep2_amount=0" }));
 
     juce::AudioBuffer<float> mono (1, audio.getNumSamples());
     mono.copyFrom (0, 0, audio, 0, 0, audio.getNumSamples());

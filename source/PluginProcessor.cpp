@@ -4,7 +4,8 @@ namespace
 {
 constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
                                      "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
-                                     "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env" };
+                                     "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
+                                     "body_sweep2_amount", "body_sweep2_decay", "body_start" };
 }
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
@@ -56,19 +57,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
     };
 
     add ("body_wave", "Wave", ranged (0.0f, 3.0f), 0.0f, "", 2);
+    add ("body_start", "Start", ranged (0.0f, 90.0f), 90.0f, "deg", 0);
     layout.add (std::make_unique<juce::AudioParameterInt> (
         juce::ParameterID { "body_tune", 1 }, "Tune", 24, 60, 33,
         juce::AudioParameterIntAttributes()
             .withStringFromValueFunction ([] (int v, int) { return juce::String (dsp::bodyNoteName (v)); })
             .withValueFromStringFunction (&PluginProcessor::noteFromText)));
-    add ("body_pitch_amount", "Pitch Amount", ranged (0.0f, 72.0f), 36.0f, "st", 1);
-    add ("body_pitch_decay", "Pitch Decay", ranged (1.0f, 1000.0f, 60.0f), 100.0f, "ms", 1);
-    add ("body_pitch_shape", "Pitch Shape", ranged (-100.0f, 100.0f), 0.0f, "%", 0);
+    add ("body_pitch_amount", "Pitch Amount", ranged (0.0f, 72.0f), 60.0f, "st", 1);
+    add ("body_pitch_decay", "Pitch Decay", ranged (1.0f, 1000.0f, 60.0f), 40.0f, "ms", 1);
+    add ("body_pitch_shape", "Pitch Shape", ranged (-100.0f, 100.0f), 30.0f, "%", 0);
+    add ("body_sweep2_amount", "Sweep 2 Amount", ranged (0.0f, 24.0f), 6.0f, "st", 1);
+    add ("body_sweep2_decay", "Sweep 2 Decay", ranged (1.0f, 2000.0f, 200.0f), 300.0f, "ms", 1);
     add ("body_amp_attack", "Attack", ranged (0.0f, 50.0f, 5.0f), 0.0f, "ms", 1);
     add ("body_amp_hold", "Hold", ranged (0.0f, 500.0f, 50.0f), 0.0f, "ms", 1);
     add ("body_amp_decay", "Amp Decay", ranged (10.0f, 2000.0f, 200.0f), 400.0f, "ms", 1);
     add ("body_amp_shape", "Amp Shape", ranged (-100.0f, 100.0f), 0.0f, "%", 0);
-    add ("body_drive", "Drive", ranged (0.0f, 24.0f), 0.0f, "dB", 1);
+    add ("body_drive", "Drive", ranged (0.0f, 24.0f), 6.0f, "dB", 1);
     add ("body_filter_cutoff", "Cutoff", ranged (20.0f, 20000.0f, 632.0f), 20000.0f, "Hz", 0);
     add ("body_filter_res", "Resonance", ranged (0.0f, 100.0f), 0.0f, "%", 0);
     add ("body_filter_env", "Env Amount", ranged (0.0f, 8.0f), 0.0f, "oct", 1);
@@ -79,7 +83,8 @@ dsp::BodyParams PluginProcessor::readParams() const
 {
     return { raw[0]->load(), raw[1]->load(), raw[2]->load(), raw[3]->load(), raw[4]->load(),
              raw[5]->load(), raw[6]->load(), raw[7]->load(), raw[8]->load(),
-             raw[9]->load(), raw[10]->load(), raw[11]->load(), raw[12]->load() };
+             raw[9]->load(), raw[10]->load(), raw[11]->load(), raw[12]->load(),
+             raw[13]->load(), raw[14]->load(), raw[15]->load() };
 }
 
 void PluginProcessor::prepareToPlay (double sampleRate, int)
@@ -150,9 +155,24 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
     apvts.replaceState (saved != nullptr ? juce::ValueTree::fromXml (*saved) : juce::ValueTree (apvts.state.getType()));
 }
 
-void PluginProcessor::migrate (juce::XmlElement&, int)
+void PluginProcessor::migrate (juce::XmlElement& xml, int fromVersion)
 {
     // Later versions rewrite older states here, one step per version.
+    // v2 (BODY-08..10): the defaults changed, so a project saved earlier keeps the sound it had.
+    if (fromVersion < 2)
+        if (auto* params = xml.getChildByName (apvts.state.getType()))
+            for (const auto* id : { "body_sweep2_amount", "body_start", "body_drive" })
+            {
+                bool found = false;
+                for (auto* child : params->getChildIterator())
+                    found = found || child->getStringAttribute ("id") == id;
+                if (! found)
+                {
+                    auto* param = params->createNewChildElement ("PARAM");
+                    param->setAttribute ("id", id);
+                    param->setAttribute ("value", 0.0);
+                }
+            }
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

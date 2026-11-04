@@ -96,10 +96,10 @@ TEST_CASE ("harn_04a_values_are_in_the_knobs_own_units")
 {
     TempDir temp;
     // A0 is 55 Hz (BODY-02a); Amp Decay 10 ms ends the kick at 10 ms (BODY-04c).
-    const auto tail = render (temp, { "--length", "1", "body_tune=A0", "body_pitch_amount=0", "body_amp_decay=2000" }).left();
+    const auto tail = render (temp, { "--length", "1", "body_tune=A0", "body_pitch_amount=0", "body_amp_decay=2000", "body_sweep2_amount=0" }).left();
     CHECK (measure::frequency (tail, 48000.0, 0.1, 0.5) == Catch::Approx (55.0).margin (55.0 * 0.005));
 
-    const auto shortKick = render (temp, { "--length", "1", "body_amp_decay=10" }).left();
+    const auto shortKick = render (temp, { "--length", "1", "body_amp_decay=10", "body_drive=0" }).left();
     CHECK (measure::lastSound (shortKick) <= 480);
     CHECK (measure::lastSound (shortKick) > 400);
 }
@@ -111,7 +111,7 @@ TEST_CASE ("harn_04a_tune_takes_a_note_name_or_a_midi_note")
     for (const auto* tune : { "body_tune=F#0", "body_tune=Gb0", "body_tune=30" })
     {
         INFO (tune);
-        const auto tail = render (temp, { "--length", "1", tune, "body_pitch_amount=0", "body_amp_decay=2000" }).left();
+        const auto tail = render (temp, { "--length", "1", tune, "body_pitch_amount=0", "body_amp_decay=2000", "body_sweep2_amount=0" }).left();
         CHECK (measure::frequency (tail, 48000.0, 0.1, 0.5) == Catch::Approx (expected).margin (expected * 0.005));
     }
 }
@@ -119,8 +119,8 @@ TEST_CASE ("harn_04a_tune_takes_a_note_name_or_a_midi_note")
 TEST_CASE ("harn_04a_values_hold_from_the_first_sample_without_a_glide")
 {
     TempDir temp;
-    // With a glide from the default Amount of 36, the first 100 ms would run far above 55 Hz.
-    const auto audio = render (temp, { "--length", "1", "body_tune=A0", "body_pitch_amount=0", "body_amp_decay=2000" }).left();
+    // With a glide from the default Amount of 60, the first 100 ms would run far above 55 Hz.
+    const auto audio = render (temp, { "--length", "1", "body_tune=A0", "body_pitch_amount=0", "body_amp_decay=2000", "body_sweep2_amount=0" }).left();
     CHECK (measure::frequency (audio, 48000.0, 0.0, 0.1) == Catch::Approx (55.0).margin (55.0 * 0.005));
 }
 
@@ -207,7 +207,7 @@ TEST_CASE ("harn_04d_length_and_rate")
     }
     SECTION ("the kick lands on the same pitch at another rate (ENG-04)")
     {
-        const auto tail = render (temp, { "--length", "1", "--rate", "192000", "body_pitch_amount=0", "body_amp_decay=2000" }).left();
+        const auto tail = render (temp, { "--length", "1", "--rate", "192000", "body_pitch_amount=0", "body_amp_decay=2000", "body_sweep2_amount=0" }).left();
         CHECK (measure::frequency (tail, 192000.0, 0.1, 0.5) == Catch::Approx (55.0).margin (55.0 * 0.005));
     }
 }
@@ -216,16 +216,16 @@ TEST_CASE ("harn_04e_the_note_starts_on_sample_zero")
 {
     TempDir temp;
     // Sample 0 is sin (0), as in build_06_note_on_sounds_on_its_exact_sample.
-    const auto audio = render (temp, { "--length", "0.1" }).left();
+    const auto audio = render (temp, { "--length", "0.1", "body_start=0", "body_drive=0" }).left();
     CHECK (measure::firstSound (audio) == 1);
 }
 
 TEST_CASE ("harn_04e_velocity_scales_the_level_linearly")
 {
     TempDir temp;
-    const auto full = measure::peak (render (temp, { "--length", "0.2" }).left());
-    const auto at127 = measure::peak (render (temp, { "--length", "0.2", "--velocity", "127" }).left());
-    const auto at64 = measure::peak (render (temp, { "--length", "0.2", "--velocity", "64" }).left());
+    const auto full = measure::peak (render (temp, { "--length", "0.2", "body_drive=0" }).left());
+    const auto at127 = measure::peak (render (temp, { "--length", "0.2", "--velocity", "127", "body_drive=0" }).left());
+    const auto at64 = measure::peak (render (temp, { "--length", "0.2", "--velocity", "64", "body_drive=0" }).left());
     CHECK (at127 == Catch::Approx (full));
     CHECK (at64 == Catch::Approx (full * 64.0f / 127.0f).margin (full * 0.01f));
 }
@@ -293,7 +293,8 @@ TEST_CASE ("harn_04f_an_unknown_id_lists_the_valid_ids")
     CHECK (result.exitCode != 0);
     for (const auto* id : { "body_wave", "body_tune", "body_pitch_amount", "body_pitch_decay", "body_pitch_shape",
                             "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
-                            "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env" })
+                            "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
+                            "body_sweep2_amount", "body_sweep2_decay", "body_start" })
         CHECK (result.output.contains (id));
 }
 

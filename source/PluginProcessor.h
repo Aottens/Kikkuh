@@ -38,14 +38,14 @@ public:
     juce::String getTailReadout() const { return dsp::bodyNoteReadout (getTailNote()); }
 
 private:
-    static constexpr int stateVersion = 1;
+    static constexpr int stateVersion = 2;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     dsp::BodyParams readParams() const;
     void migrate (juce::XmlElement& xml, int fromVersion);
 
     juce::AudioProcessorValueTreeState apvts;
-    std::array<std::atomic<float>*, 13> raw {};
+    std::array<std::atomic<float>*, 16> raw {};
     dsp::BodyVoice voice;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)

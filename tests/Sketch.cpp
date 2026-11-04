@@ -85,6 +85,31 @@ TEST_CASE ("harn_08a_plain_means_body")
     }
 }
 
+TEST_CASE ("body_09b_and_10a_the_voice_does_what_the_sketch_did")
+{
+    const auto difference = [] (sketch::Params p, float amount, float decayMs, float start) {
+        p.sweep2Amount = amount;
+        p.sweep2DecayMs = decayMs;
+        p.startPhase = start;
+        p.body.sweep2Amount = amount;
+        p.body.sweep2DecayMs = decayMs;
+        p.body.startDegrees = start;
+        dsp::BodyVoice voice;
+        voice.setParams (p.body);
+        voice.prepare (rate48);
+        voice.trigger (1.0f);
+        float largest = 0.0f;
+        for (const auto s : sketch::renderRaw (p, rate48, 1.0))
+            largest = std::max (largest, std::abs (voice.next() - s));
+        return largest;
+    };
+    const auto kick = with ({ { "body_pitch_amount", "60" }, { "body_pitch_decay", "40" }, { "body_pitch_shape", "30" } });
+
+    // The sketch without a second stage is the render without this stage (BODY-09b): sample-identical.
+    CHECK (difference (kick, 0.0f, 300.0f, 0.0f) == 0.0f);
+    CHECK (db (difference (kick, 6.0f, 300.0f, 90.0f)) < -90.0);
+}
+
 TEST_CASE ("harn_08a_set_rejects_what_the_spec_does_not_list")
 {
     sketch::Params p;

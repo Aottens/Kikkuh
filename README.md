@@ -5,19 +5,21 @@ the kick in your track with knobs, like on a subtractive synth.
 
 ## Status
 Very early. Kikkuh plays a synthesized kick that you shape with wave, tune, pitch, amp, drive and filter knobs in
-the host's generic editor. A second sweep stage and new defaults, chosen by ear, come next, then the
-real panel. Plan in `BACKLOG.md`, handoff in
-`STATE.md`, scope in `specs/PRD.md`.
+the host's generic editor, and its defaults are the sound chosen by ear in blind rounds. The real panel comes next.
+Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 
 ## What works today
 - Builds as VST3, AU and CLAP and installs itself into `~/Library/Audio/Plug-Ins/`.
 - A MIDI note plays a kick, sample-accurately, at zero latency.
 - Wave morphs from sine through triangle and saw to square, band-limited.
-- Tune sets the note the kick lands on; Pitch Amount, Decay and Shape set the sweep down to it.
+- Tune sets the note the kick lands on; Pitch Amount, Decay and Shape set the sweep down to it, and Sweep 2 Amount and
+  Decay add a slower second stage.
+- Start sets the phase at the note-on: at 90 degrees the kick starts at full level.
 - Attack, Hold, Decay and Shape set the level.
 - Drive clips the kick hard after the amp, oversampled and still at zero reported latency.
 - A 24 dB low-pass with Cutoff, Resonance and Env Amount follows the drive.
-- All knobs are automatable and smoothed, and they come back with your project.
+- All knobs are automatable and smoothed, and they come back with your project; a project saved before the new
+  defaults keeps its sound.
 - `kikkuh-render` writes a kick to a WAV without a DAW, for example
   `build/kikkuh-render --out kick.wav body_tune=F#0 body_pitch_amount=60`.
 - `kikkuh-measure` prints the sweep, harmonics, first milliseconds and decay of a kick from a WAV or

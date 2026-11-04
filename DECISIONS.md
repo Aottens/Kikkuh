@@ -116,3 +116,16 @@ saturation; a start at zero, which BODY-01c asked for; matching by peak, which w
 is checked in a loop in VS1-07.
 
 **Reversal trigger:** the CORE-01 run in VS1-07 fails on these defaults.
+
+## 2026-11-04 — Old projects migrate to the sound they had; a VS0-01 project takes the defaults (VS1-10)
+
+**Decision:** state version 2. A version 1 state that holds knobs gets Sweep 2 Amount 0, Start 0 and Drive 0 where it
+lacks them, and keeps what it has. A VS0-01 state holds no knobs and takes the new defaults. `dsp::BodyParams` keeps
+its member defaults at the sound before BODY-08; the plugin's defaults live in `createLayout`.
+
+**Alternatives considered:** migrating a VS0-01 state as well, which gives a mix nobody chose while its fixed kick is
+gone anyway; moving `BodyParams` to the new defaults, which changes the "today" option of the VS1-09 rounds.
+
+**Reasoning:** BODY-08d, and the VS1-09 rounds stay repeatable from their seed.
+
+**Reversal trigger:** the sketch and its rounds are deleted, or the owner wants a VS0-01 project treated otherwise.

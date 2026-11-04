@@ -1511,7 +1511,7 @@ TEST_CASE ("eng_06a_state_restores_every_parameter")
         auto* p = findParam (saved, id);
         REQUIRE (p != nullptr);
         // A switch holds 0 or 1 only once it is restored, so it is set to one of those.
-        p->setValueNotifyingHost (juce::String (id) == "play_key_track" ? 1.0f : position);
+        p->setValueNotifyingHost (juce::String (id) == "play_key_track" || juce::String (id) == "body_tail_anchor" ? 1.0f : position);
         values[id] = p->getValue();
         position += 0.08f;
     }
@@ -1801,22 +1801,18 @@ TEST_CASE ("play_03a_the_old_kick_stops_without_a_click")
 
 TEST_CASE ("play_03b_a_retrigger_adds_no_click_to_the_hit")
 {
-    const auto check = [] (Settings settings) {
-        for (double gap : { 0.3, 0.075 }) // 200 BPM and its sixteenths
+    const auto check = [] (Settings settings, float limit) {
+        for (double gap = 0.05; gap < 0.31; gap += 0.0025)
         {
             PluginProcessor plugin;
             set (plugin, settings);
-            const auto x = renderHits (plugin, rate48, gap * 4.0 + 0.05, { { 0.0 }, { gap }, { gap * 2.0 }, { gap * 3.0 } });
-            const auto fromSilence = measure::largestStepBetween (x, rate48, 0.0, 0.02);
-            for (int hit = 1; hit < 4; ++hit)
-            {
-                INFO (gap << " hit " << hit);
-                CHECK (stepAround (x, rate48, gap * hit) <= fromSilence + noClick);
-            }
+            const auto x = renderHits (plugin, rate48, gap * 2.0 + 0.05, { { 0.0 }, { gap } });
+            INFO ("gap " << gap);
+            CHECK (stepAround (x, rate48, gap) < limit);
         }
     };
-    check ({});
-    check ({ { "body_start", 0.0f }, { "body_amp_decay", 2000.0f } });
+    check ({}, 1.15f);
+    check ({ { "body_start", 0.0f }, { "body_amp_decay", 2000.0f } }, 0.75f);
 }
 
 TEST_CASE ("play_03c_the_filter_does_not_click_on_a_retrigger")

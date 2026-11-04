@@ -166,20 +166,19 @@ bare voice" is Drive 0 with the filter open, because Drive and the filter have a
 - **BODY-07b** All sweeps done: two renders of the bare voice with Tail Anchor on, differing in any pitch knobs, are
   sample-identical (exactly equal floats) from `T + 50 ms`, where `T` is the latest `W` and Sweep 2 Decay of the two.
 - **BODY-07c** Second stage still running: if the two differ only in Pitch Amount, Decay or Shape, they also agree from
-  the later `W + 50 ms` until BODY-07b takes over, with the largest difference below -80 dB (proposed; VS1-04 reports what it
-  reaches). At the defaults that is the audible tail, from 100 ms, where BODY-07b alone starts at 350 ms, where the amp stands at -54 dB.
+  the later `W + 50 ms` until BODY-07b takes over, with the largest difference below -80 dB (measured in VS1-04: one float step, about -144 dB). At the defaults that is the audible tail, from 100 ms, where BODY-07b alone starts at 350 ms, where the amp stands at -54 dB.
 - **BODY-07d** Start holds: with Tail Anchor on the first sample is the same as with it off, for any pitch knobs. BODY-10a
   holds at Start 0 and 90.
 - **BODY-07e** The bend is limited: the phase gained or lost by the bend is at most half a cycle. Pitch follows BODY-09a from
   `W` on within 1 cent, and before it within `1200 * log2 (1 + e)` cents. Without a sweep (both Amounts 0) `e` is 0
   and on matches off within -120 dB: on takes its tail's phase from the clock, as BODY-07b needs, and off adds it up. Limit, proposed: at A0, for Amount 12..72, Decay 5..160 ms, Shape -50..+60, Sweep 2
-  Amount 0 or 6, the bend at the note-on stays below 600 cents. The model gives a median of 82 and a maximum of 536.
+  Amount 0 or 6, the bend at the note-on stays below 600 cents. The model gives a median of 82; measured, the maximum is 534.
 - **BODY-07f** The defaults keep their numbers: BODY-08a, b and c hold with Tail Anchor on. BODY-02d, BODY-03 and
-  BODY-09 are measured with it off; the readout does not count the bend. The model puts the default kick's bend at
-  -63 cents at the note-on and -38 cents at 20 ms.
+  BODY-09 are measured with it off; the readout does not count the bend. The default kick's bend is -62 cents at the note-on, measured, and -38 cents at 20 ms in
+  the model.
 - **BODY-07g** Drive and the filter remember what went in, so after them the tails converge instead of being identical. At the
-  defaults the difference between two renders of BODY-07b falls below -80 dB within 50 ms of `T + 50 ms` (proposed; VS1-04
-  reports what it reaches). With the filter closed it rings for as long as the filter rings; no limit.
+  defaults the difference between two renders of BODY-07b falls below -80 dB within 50 ms of `T + 50 ms` (measured in VS1-04: exactly 0
+  from `T + 50 ms`, with the kick held at full level through the clip). With the filter closed it rings for as long as the filter rings; no limit.
 - **BODY-07h** Key Track: the note that plays takes Tune's place. A note with Key Track on is sample-identical to the same
   note on Tune with it off. Two different notes have different pitches, so there is nothing to compare.
 - **BODY-07i** ENG-04: the tail's phase against `Start + Tune Hz * t` stays within 0.01 cycle at 44.1, 48, 96 and 192 kHz.

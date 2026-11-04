@@ -19,6 +19,8 @@ public:
     // startPhase is a fraction of a cycle: the first next() reads there.
     void reset (double startPhase = 0.0) { phase = startPhase; }
 
+    double getPhase() const { return phase; }
+
     float next (double hz, double sampleRate, float wave)
     {
         const auto& t = tables();

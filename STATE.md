@@ -8,7 +8,7 @@ This file is the handoff: where we are, what is next, what waits. It is not a lo
 BODY now plays what the owner chose in VS1-09: a sweep in two stages, a start at full level and 6 dB of hard clipping
 by default, and it measures as the sketch did. Older projects keep their sound (state version 2). BODY-05's filter type
 is still a proposal.
-The panel is there: one printed plate in signal order, with the tail readout, a hit pad and a loop. Tests cover what the controls do; how it feels is for the VS1-06 re-test.
+The panel is there: one printed plate in signal order, with the tail readout, a hit pad and a loop. The owner approved it in Bitwig "for now"; what is left to polish is IDEA-05.
 At the defaults a kick peaks at +1.17 dBFS at velocity 127, and nothing limits it until the Master section (VS3-01).
 The kick now plays: Velocity and Key Track are knobs, and a new note cuts off a ringing one without a click (3 ms fade,
 no knob). With Key Track on, a C3 at the defaults peaks at +3.1 dBFS, also unlimited until VS3-01.
@@ -16,12 +16,11 @@ The tail anchor is on by default: pitch knobs leave the tail sample-identical, S
 clap-validator warns that scanning takes 410 ms against its 100 ms guideline; not a failure, watch it.
 
 ## Next
-1. VS1-07, the CORE-01 run on this panel, needs the owner's choice below. It is the re-run CORE-01 asks for after this panel change.
+1. VS1-07, the CORE-01 run on this panel, needs the owner's choice below. It is the re-run CORE-01 asks for after this panel change, and it also shows whether Tune at 30 points a semitone holds.
    Tests that read the bare voice use `BarePlugin` in `tests/Body.cpp`, now with the anchor off: at the defaults the signal
    passes the oversampling filters, which delay and ring.
 
 ## Waiting for a run in Bitwig (gate 3, owner)
-- VS1-06: `tests/manual/vs1-06-panel.md`. First run and re-test done: the pad and the loop sound with the transport stopped, and a bounce with the loop on is silent. Left: the panel of the approved prototype and Tune at 30 points a semitone.
 - VS1-04: `tests/manual/vs1-04-tail-anchor.md`. Its step 2 is the main question: does the bend cost the chosen kick anything?
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.
@@ -33,4 +32,5 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 ## Owner decisions open
 - CORE-01 asks for three reference kicks and VS1-08 chose four: run it with all four, or pick three. Needed by VS1-07.
 - Is tuning between notes worth a Fine knob (IDEA-03)? Proposed: after v1.
+- A default button at the top of the panel (IDEA-04): proposed for slice 5. Polish of the panel (IDEA-05): proposed after CORE-01.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

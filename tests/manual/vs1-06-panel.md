@@ -4,12 +4,12 @@ Result goes in `tests/manual/runs/<date>-VS1-06.md`, with `## Open points`.
 The tests show which controls exist, where, and what they do. This run is about how it feels.
 Whether you can reach a kick within 3 minutes is CORE-01, the next run (VS1-07), so it is not repeated here.
 
-The first run and its re-test are in `tests/manual/runs/2026-11-05-VS1-06.md`: the pad and the loop with the transport stopped and on the grid,
-resizing, the material, Shift on the wheel and a silent bounce all held. What is left is what changed after them:
+Done: the run, its re-test and the last check are in `tests/manual/runs/2026-11-05-VS1-06.md`. A new run of this checklist comes with any change to how the panel works:
 
 1. **[Claude]** Build and install: `cmake --build build`.
-2. **[Jij]** Reopen Kikkuh. Is this the prototype you approved: centred titles, light section lines, two knob sizes, switches centred on a knob and its label? Is one size of knob on the top row
-   calm, or too much of the same?
-3. **[Jij]** Drag Tune. Is 30 points per semitone right, or still too fast or now too slow? Drag it far: does it keep going at the edge of your screen,
-   and does the cursor come back where it should?
-4. **[Jij]** Do SWEEP 2, the place of Tail Anchor, the weight of Hit and a note shown twice still bother you? Each that does becomes a row.
+2. **[Jij]** Transport stopped: hit the pad, then switch Loop on. Does it sound at once, in the project's tempo, with the yellow keeping up?
+3. **[Jij]** Transport running against a four-to-the-floor: does the loop sit on it, through an arranger loop and a stop and start?
+4. **[Jij]** Drag knobs and Tune, with and without Shift; the wheel with and without Shift; double-click and Cmd-click; type `F#0` on Tune and `1k` on Cutoff.
+5. **[Jij]** Resize from small to large. Close and reopen: the size is kept, Loop is off.
+6. **[Jij]** Loop on, then bounce offline: only the MIDI notes in the bounce.
+7. **[Jij]** Is everything aligned and readable, and is the panel pleasant to work on?

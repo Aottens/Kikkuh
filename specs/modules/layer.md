@@ -72,7 +72,10 @@ After Decay the section is silent. A Sample also stops at its own end.
   192 kHz.
 - **LAYER-01b** Noise is broadband: with filters open and Tune 0, over a Decay of 200 ms its energy splits over
   `bands` (HARN-05) 300 Hz-1 kHz, 1-4 kHz and 4 kHz up within 3 percentage points of white noise up to 20 kHz.
-- **LAYER-01c** Noise follows Tune: at Tune -12 the share of energy above 4 kHz is at most half of that at Tune 0.
+- **LAYER-01c** Noise follows Tune: at Tune -12 it plays at half speed, so it holds nothing above 12 kHz. At 48 kHz,
+  leaving out 12 kHz up changes its share of energy above 4 kHz by less than 1 percentage point, where at Tune 0 it
+  changes it by more than 10 (white noise: 83 % against 67 %). (Corrected in VS2-01: the first wording, half the share
+  above 4 kHz, cannot hold for noise that is slowed down, which keeps 67 % there.)
 - **LAYER-01d** ENG-03 holds for both sources: the same note renders identically twice, across block sizes.
 - **LAYER-01e** ENG-04 holds for both sources: the layer's peak and its `bands` stay within 1 dB and 3 percentage points
   between 44.1, 48, 96 and 192 kHz (energy above 20 kHz left out).
@@ -99,6 +102,8 @@ After Decay the section is silent. A Sample also stops at its own end.
   CLICK and TOP within their ranges that puts at least 60 % of the energy in 0-5 ms above 1 kHz and keeps it below 5 %
   in 5-20 ms. The test holds that setting and writes it into this spec; if no setting reaches it, VS2-01 reports the
   best it reaches and stops for the owner.
+  VS2-01 found it: CLICK on Noise, Level +6 dB, Decay 8 ms, High-pass 1500 Hz, and TOP on Noise, Level +6 dB, Decay 10 ms,
+  High-pass 1000 Hz, both Tune 0 and Low-pass open, which puts 75.6 % above 1 kHz in 0-5 ms and 0.03 % in 5-20 ms.
 - **LAYER-02h** ENG-01 holds for Level, Tune, Decay, High-pass and Low-pass: smoothed per sample, settling within 50 ms,
   and a full-range jump during a ringing layer (Tone, Decay 2000 ms, Level -6 dB) stays below a step of 0.05 beyond the
   tone's own step. ENG-01e: Level shows one decimal or "Off", Tune one decimal, Decay one decimal, the filters whole Hz

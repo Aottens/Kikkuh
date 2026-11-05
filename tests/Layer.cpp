@@ -142,11 +142,13 @@ TEST_CASE ("layer_01b_noise_is_broadband")
 
 TEST_CASE ("layer_01c_noise_follows_tune")
 {
-    const auto at = [] (float tune) {
-        return measure::bandShares (layer ({ { "top_level", 0.0f }, { "top_decay", 200.0f }, { "top_hp", 20.0f }, { "top_tune", tune } }, rate48, 0.3),
-                                    rate48, 0.0, 0.2)[3];
+    // How much the share above 4 kHz moves when 12 kHz up is left out: little when there is nothing up there.
+    const auto change = [] (float tune) {
+        const auto x = layer ({ { "top_level", 0.0f }, { "top_decay", 200.0f }, { "top_hp", 20.0f }, { "top_tune", tune } }, rate48, 0.3);
+        return measure::bandShares (x, rate48, 0.0, 0.2)[3] - measure::bandShares (x, rate48, 0.0, 0.2, 12000.0)[3];
     };
-    CHECK (at (-12.0f) <= 0.5 * at (0.0f));
+    CHECK (std::abs (change (-12.0f)) < 1.0);
+    CHECK (change (0.0f) > 10.0);
 }
 
 TEST_CASE ("layer_01d_the_same_note_renders_identically")
@@ -193,7 +195,7 @@ TEST_CASE ("layer_01f_source_is_read_at_the_note_on")
             setParam (p, "click_source", noise);
     });
     const auto split = static_cast<size_t> (0.3 * rate48);
-    CHECK (measure::largestDifference (still, 0, moved, 0, split) == 0.0f);
+    CHECK_FALSE (measure::largestDifference (still, 0, moved, 0, split) > 0.0f);
     // The next note plays noise, once the old tone's fade (LAYER-03d) has gone.
     const auto noisy = layer ({ { "click_source", noise }, { "click_level", -6.0f }, { "click_decay", 2000.0f } }, rate48, 0.2);
     const auto faded = static_cast<size_t> (0.05 * rate48);
@@ -310,9 +312,8 @@ TEST_CASE ("layer_02g_the_layers_reach_beefys_first_5_ms")
         { "body_drive", 0.0f }, { "body_start", 0.0f }, { "body_sweep2_amount", 0.0f }, { "body_tail_anchor", 0.0f },
         { "body_tune", 34.0f }, { "body_pitch_amount", 22.42f }, { "body_pitch_decay", 139.7f }, { "body_pitch_shape", 13.6f },
         { "body_amp_hold", 4.1f }, { "body_amp_decay", 234.3f }, { "body_amp_shape", -100.0f },
-        // VS2-01: the setting below is a first guess; replace it with the one found.
-        { "click_source", noise }, { "click_level", 6.0f }, { "click_decay", 3.0f }, { "click_hp", 4000.0f },
-        { "top_source", noise }, { "top_level", 6.0f }, { "top_decay", 6.0f }, { "top_hp", 1500.0f }
+        { "click_source", noise }, { "click_level", 6.0f }, { "click_decay", 8.0f }, { "click_hp", 1500.0f },
+        { "top_source", noise }, { "top_level", 6.0f }, { "top_decay", 10.0f }, { "top_hp", 1000.0f }
     };
     const auto x = kick (beefy, rate48, 0.3);
     const auto first = measure::bandShares (x, rate48, 0.0, 0.005), after = measure::bandShares (x, rate48, 0.005, 0.02);

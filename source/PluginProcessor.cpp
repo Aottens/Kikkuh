@@ -7,7 +7,9 @@ constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amoun
                                      "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
                                      "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
                                      "body_sweep2_amount", "body_sweep2_decay", "body_start",
-                                     "play_velocity", "play_key_track", "body_tail_anchor" };
+                                     "play_velocity", "play_key_track", "body_tail_anchor",
+                                     "click_source", "click_level", "click_tune", "click_decay", "click_hp", "click_lp",
+                                     "top_source", "top_level", "top_tune", "top_decay", "top_hp", "top_lp" };
 }
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
@@ -38,24 +40,43 @@ PluginProcessor::PluginProcessor()
 
     // The wavetables take a moment to build: do it here, never on the audio thread.
     dsp::MorphOsc::warmUp();
+    dsp::LayerVoice::warmUp();
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayout()
 {
     using Float = juce::AudioParameterFloat;
     using Attributes = juce::AudioParameterFloatAttributes;
+    // ENG-06a: a host sets the knob, and a state stores the value, so the knob a value reloads to must give exactly that
+    // value back. A skewed range's float round trip can land an ulp off (clap-validator reports it), so the knob is the float
+    // among the neighbours of the formula's answer whose value is exactly the one asked for.
     const auto ranged = [] (float low, float high, float centre = 0.0f) {
-        juce::NormalisableRange<float> range (low, high);
-        if (centre > 0.0f)
-            range.setSkewForCentre (centre);
-        return range;
+        const auto skew = centre > 0.0f ? std::log (0.5) / std::log ((centre - low) / static_cast<double> (high - low)) : 1.0;
+        const auto toValue = [skew] (float start, float end, float knob) {
+            return static_cast<float> (start + (end - start) * std::pow (static_cast<double> (knob), 1.0 / skew));
+        };
+        return juce::NormalisableRange<float> (
+            low, high, toValue,
+            [skew, toValue] (float start, float end, float value) {
+                const auto guess = static_cast<float> (std::pow ((value - start) / static_cast<double> (end - start), skew));
+                auto knob = guess;
+                for (int i = 0; i < 8 && toValue (start, end, knob) < value; ++i)
+                    knob = std::nextafter (knob, 2.0f);
+                for (int i = 0; i < 8 && toValue (start, end, knob) > value; ++i)
+                    knob = std::nextafter (knob, -1.0f);
+                return juce::exactlyEqual (toValue (start, end, knob), value) ? knob : guess;
+            },
+            [] (float start, float end, float value) { return juce::jlimit (start, end, value); });
     };
 
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
     const auto add = [&] (const char* id, const char* name, juce::NormalisableRange<float> range, float def, const char* unit, int decimals) {
         // Fixed decimals, so the text survives value -> text -> value -> text (clap-validator).
         layout.add (std::make_unique<Float> (juce::ParameterID { id, 1 }, name, range, def,
-                                             Attributes().withLabel (unit).withStringFromValueFunction ([decimals] (float v, int) { return decimals == 0 ? juce::String (juce::roundToInt (v)) : juce::String (v, decimals); })));
+                                             Attributes().withLabel (unit).withStringFromValueFunction ([decimals] (float v, int) { if (decimals == 0)
+                                                                                                         return juce::String (juce::roundToInt (v));
+                                                                                                     const auto text = juce::String (v, decimals);
+                                                                                                     return text.containsOnly ("-0.") ? text.replace ("-", "") : text; })));
     };
 
     add ("body_wave", "Wave", ranged (0.0f, 3.0f), 0.0f, "", 2);
@@ -81,7 +102,28 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
     add ("play_velocity", "Velocity", ranged (0.0f, 100.0f), 100.0f, "%", 0);
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "play_key_track", 1 }, "Key Track", false));
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "body_tail_anchor", 1 }, "Tail Anchor", true));
+
+    // LAYER-01/02: CLICK and TOP, the same knobs with their own defaults.
+    for (const auto* prefix : { "click", "top" })
+    {
+        const bool isClick = juce::String (prefix) == "click";
+        const juce::String id (prefix), name (isClick ? "Click " : "Top ");
+        layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { id + "_source", 1 }, name + "Source", juce::StringArray { "Tone", "Noise" }, isClick ? 0 : 1));
+        layout.add (std::make_unique<Float> (juce::ParameterID { id + "_level", 1 }, name + "Level", ranged (-60.0f, 6.0f), -60.0f,
+                                             Attributes().withLabel ("dB")
+                                                 .withStringFromValueFunction ([] (float v, int) { return v < -59.95f ? juce::String ("Off") : juce::String (v, 1).replace ("-0.0", "0.0"); })
+                                                 .withValueFromStringFunction ([] (const juce::String& text) { return text.trim().equalsIgnoreCase ("Off") ? -60.0f : text.getFloatValue(); })));
+        add ((id + "_tune").toRawUTF8(), (name + "Tune").toRawUTF8(), ranged (-24.0f, 24.0f), 0.0f, "st", 1);
+        add ((id + "_decay").toRawUTF8(), (name + "Decay").toRawUTF8(), ranged (1.0f, 2000.0f, 50.0f), isClick ? 4.0f : 30.0f, "ms", 1);
+        add ((id + "_hp").toRawUTF8(), (name + "High-pass").toRawUTF8(), ranged (20.0f, 20000.0f, 632.0f), isClick ? 20.0f : 1000.0f, "Hz", 0);
+        add ((id + "_lp").toRawUTF8(), (name + "Low-pass").toRawUTF8(), ranged (20.0f, 20000.0f, 632.0f), 20000.0f, "Hz", 0);
+    }
     return layout;
+}
+
+dsp::LayerParams PluginProcessor::readLayer (size_t first) const
+{
+    return { raw[first]->load(), raw[first + 1]->load(), raw[first + 2]->load(), raw[first + 3]->load(), raw[first + 4]->load(), raw[first + 5]->load() };
 }
 
 dsp::BodyParams PluginProcessor::readParams() const
@@ -96,6 +138,10 @@ void PluginProcessor::prepareToPlay (double newRate, int)
 {
     voice.setParams (readParams());
     voice.prepare (newRate);
+    click.setParams (readLayer (19));
+    top.setParams (readLayer (25));
+    click.prepare (newRate);
+    top.prepare (newRate);
     sampleRate = newRate;
     loop.reset();
 }
@@ -122,11 +168,13 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
     voice.setParams (readParams());
+    click.setParams (readLayer (19));
+    top.setParams (readLayer (25));
 
     auto render = [&] (int start, int end) {
         for (int i = start; i < end; ++i)
         {
-            const auto sample = voice.next();
+            const auto sample = voice.next() + click.next() + top.next();
             for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
                 buffer.getWritePointer (ch)[i] = sample;
         }
@@ -136,6 +184,8 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     const auto live = ! isNonRealtime();
     const auto kick = [&] (float level, int note) {
         voice.trigger (level, note);
+        click.trigger (level);
+        top.trigger (level);
         ++kicks;
     };
     if (padPressed.exchange (false) && live)
@@ -190,7 +240,12 @@ void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     juce::XmlElement xml ("KikkuhState");
     xml.setAttribute ("version", stateVersion);
-    xml.addChildElement (apvts.copyState().createXml().release());
+    auto params = apvts.copyState().createXml();
+    // ENG-06a: nine significant digits bring every value back exactly; the default writing rounds 20.0000019 to 20.0.
+    for (auto* param : params->getChildIterator())
+        if (auto* value = apvts.getRawParameterValue (param->getStringAttribute ("id")))
+            param->setAttribute ("value", juce::String::formatted ("%.9g", static_cast<double> (value->load())));
+    xml.addChildElement (params.release());
     copyXmlToBinary (xml, destData);
 }
 
@@ -205,6 +260,13 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
     // A state without parameters (VS0-01) restores every parameter to its default.
     const auto* saved = xml->getChildByName (apvts.state.getType());
     apvts.replaceState (saved != nullptr ? juce::ValueTree::fromXml (*saved) : juce::ValueTree (apvts.state.getType()));
+
+    // ENG-06a: replaceState skips a value that is only approximately the current one, so the exact one is set here.
+    if (saved != nullptr)
+        for (auto* param : saved->getChildIterator())
+            if (auto* p = apvts.getParameter (param->getStringAttribute ("id")))
+                if (const auto value = static_cast<float> (param->getDoubleAttribute ("value")); ! juce::exactlyEqual (p->convertFrom0to1 (p->getValue()), value))
+                    p->setValueNotifyingHost (p->convertTo0to1 (value));
 }
 
 void PluginProcessor::migrate (juce::XmlElement& xml, int fromVersion)

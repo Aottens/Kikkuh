@@ -21,7 +21,7 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
    passes the oversampling filters, which delay and ring.
 
 ## Waiting for a run in Bitwig (gate 3, owner)
-- VS1-06: `tests/manual/vs1-06-panel.md`. First run and re-test done: the pad and the loop sound with the transport stopped, and a bounce with the loop on is silent. Left: the lines between the sections and Tune at 30 points a semitone.
+- VS1-06: `tests/manual/vs1-06-panel.md`. First run and re-test done: the pad and the loop sound with the transport stopped, and a bounce with the loop on is silent. Left: the panel of the approved prototype and Tune at 30 points a semitone.
 - VS1-04: `tests/manual/vs1-04-tail-anchor.md`. Its step 2 is the main question: does the bend cost the chosen kick anything?
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.

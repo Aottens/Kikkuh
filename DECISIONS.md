@@ -4,6 +4,48 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-05 — The panel: printed aluminium, one colour for sounding, PITCH before OSC (VS1-06, owner)
+
+**Decision:** the panel the owner approved in a clickable prototype after research (`docs/research/panel-design.md`). A flat
+aluminium plate with ink print, and a printed line in the real order of the signal, so PITCH comes before OSC. Yellow means only that a
+kick sounds. Two knob sizes, 1144 x 318 points, 80 to 200 %. The grafiet variant of the prototype is not built. After the owner's runs everything stands on one grid with two knob sizes, centred titles and light section lines: the first prototype's knobs were not aligned, which the owner rejected.
+
+**Alternatives considered:** one long row of equal knobs at 1240 x 300; OSC first, as most synths have it; a dark panel with an accent colour.
+
+**Reasoning:** unreadable text and poor scaling are the most reported complaints, and an oversized window hides the arrangement. A
+panel gets a face from one rule applied everywhere. The evidence for the looks is thin and mostly taste; no source was found against
+neon or LED rings on plugins as such, so that part is the owner's call.
+
+**Reversal trigger:** the VS1-06 or CORE-01 run finds it hard to read or tiring, or PITCH before OSC gets in the way.
+
+## 2026-11-05 — Archivo as the panel's typeface (owner)
+
+**Decision:** four static cuts of Archivo (Omnibus-Type, SIL OFL 1.1, no reserved font name), compiled into the plugin, with
+`assets/fonts/OFL.txt` alongside. Made with fontTools (instanced, subset to Latin, renamed "Kikkuh Archivo") from
+`ofl/archivo/Archivo[wdth,wght].ttf` in github.com/google/fonts, sha256 `0e094a7d...b05053`.
+
+**Alternatives considered:** the system font, which differs per platform; the variable font, because JUCE has no way to set its axes.
+
+**Reasoning:** the OFL allows embedding in software that is sold; it requires the licence to go with it and forbids selling the font alone.
+The installer (VS6-04) must ship `OFL.txt`.
+
+**Reversal trigger:** the owner picks another typeface.
+
+## 2026-11-05 — Audition: not parameters, not in a bounce, free-running when stopped (VS1-06, owner)
+
+**Decision:** the pad and the loop are not host parameters, are not saved and are silent offline. The loop stops when the editor closes. It
+plays quarter notes, at full level on Tune's note. On a running transport it follows the PPQ, and a first hit waits for the next quarter note.
+On a stopped one there is no PPQ, so it counts the interval at the host's tempo: the one place tempo is counted rather than derived.
+
+**Alternatives considered:** a host parameter, which a project could store as on, so that it plays with nobody asking; a choice of note values; the last
+MIDI note on the pad, so what you hear depends on what you played before.
+
+**Reasoning:** a bounce can never hold a kick that is not in the piano roll, and a loop never runs out of sight.
+
+**Reversal trigger:** the VS1-06 run wants the loop in other note values, or Bitwig does not process audio with the transport stopped.
+
+---
+
 ## 2026-11-04 — Tail anchor: Start holds, the sweep bends, each stage locks on its own (VS1-04, owner)
 
 **Decision:** with the anchor on, the phase after the sweeps is `Start + Tune Hz * t`, taken from a sample counter and not

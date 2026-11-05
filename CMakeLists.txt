@@ -44,6 +44,13 @@ clap_juce_extensions_plugin(TARGET Kikkuh
     CLAP_ID com.colourmotion.kikkuh
     CLAP_FEATURES instrument drum synthesizer)
 
+# FAST-05: the panel's typeface, Archivo in four instanced cuts (OFL, see assets/fonts/OFL.txt).
+juce_add_binary_data(KikkuhAssets SOURCES
+    assets/fonts/Archivo-Name.ttf
+    assets/fonts/Archivo-Title.ttf
+    assets/fonts/Archivo-Label.ttf
+    assets/fonts/Archivo-Value.ttf)
+
 # Plugin code shared by the plugin and the tests (no ODR clash: an INTERFACE library).
 add_library(KikkuhCode INTERFACE)
 file(GLOB_RECURSE KIKKUH_SOURCES CONFIGURE_DEPENDS source/*.cpp source/*.h)
@@ -54,6 +61,7 @@ target_compile_definitions(KikkuhCode INTERFACE
     JUCE_USE_CURL=0
     JUCE_VST3_CAN_REPLACE_VST2=0)
 target_link_libraries(KikkuhCode INTERFACE
+    KikkuhAssets
     juce::juce_audio_utils
     juce::juce_dsp
     juce::juce_recommended_config_flags

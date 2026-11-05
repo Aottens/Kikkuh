@@ -1,6 +1,7 @@
 # Checklist: the kick in your head, within 3 minutes (CORE-01)
 
 Run on the first playable panel (VS1-07) and after every change to how the panel works.
+Next: VS1-07, on the panel of VS1-06.
 Result goes in `tests/manual/runs/<date>-CORE-01.md`, with `## Open points`.
 
 The owner chooses three reference kicks and writes them down in the run file. Use the same three

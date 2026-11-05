@@ -361,3 +361,14 @@ TEST_CASE ("measure_largest_difference_lines_up_two_signals")
     CHECK (measure::largestDifference (a, 1, b, 0, 3) == 0.5f);
     CHECK (measure::largestDifference (a, 1, b, 0, 1) == 0.0f);
 }
+
+TEST_CASE ("measure_hits_finds_each_hit_once")
+{
+    std::vector<float> x (1000, 0.0f);
+    for (const auto start : { 0, 400, 999 })
+        x[static_cast<size_t> (start)] = -1.0f;
+    x[1] = 1.0f; // the same hit as sample 0
+    x[420] = 1.0f; // the same hit as sample 400: a gap of 20
+    CHECK (measure::hits (x, 0.5f, 100) == std::vector<int> { 0, 400, 999 });
+    CHECK (measure::hits (std::vector<float> (10, 0.0f), 0.5f, 100).empty());
+}

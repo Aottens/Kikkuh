@@ -16,6 +16,8 @@ way round; a task status named in a row ("VS1-02 todo") must match BACKLOG
 | IDEA-01 | Send and return for external rumble | triaged, VS4-01 todo | after v1 | rumble |
 | IDEA-02 | A sound engine round, chosen by ear | done, VS1-09 done | slice 1, before VS1-03 | body |
 | IDEA-03 | Tuning between notes | new | after v1, proposed | body |
+| IDEA-04 | A default button at the top of the panel | new | slice 5, proposed | fast |
+| IDEA-05 | Polish of the panel | new | after CORE-01, proposed | fast |
 
 ### IDEA-01 — Send and return for external rumble
 The owner's idea: send the kick out to your own rumble chain and take the result back into Kikkuh.
@@ -47,3 +49,12 @@ hardware, which ENG-03 now forbids.
 References sit up to 44 cents between notes, and Tune has whole notes only. In VS1-09's round 7 the owner hardly
 heard -22 or +44 cents on single hits, so nothing was specced. Against a bass line it may matter. Open question: is
 that worth a Fine knob on the one panel?
+
+### IDEA-04 — A default button at the top of the panel
+From the VS1-06 run: double-click returns one knob to its default, and the owner also wants a button at the top for later. Proposed for slice 5,
+with A/B compare and the starting points (FAST-02, FAST-04), which need the same place. Open questions: does it reset the whole panel or something
+smaller, and can you undo it, since one click would throw away a kick.
+
+### IDEA-05 — Polish of the panel
+Left when the owner approved the panel "for now" in the VS1-06 run: SWEEP 2 is a third kind of line, Tail Anchor reads as part of it, Hit weighs less than the knobs, a note can stand twice at
+Tune and the tail readout, and one knob size on the top row gives no rank between Amount and Shape. Proposed after CORE-01 (VS1-07), which shows which of these get in the way.

@@ -4,12 +4,16 @@ A kick and rumble instrument plugin for techno, acid and trance: get from the ki
 the kick in your track with knobs, like on a subtractive synth.
 
 ## Status
-Very early. Kikkuh plays a synthesized kick that you shape with wave, tune, pitch, amp, drive and filter knobs in
-the host's generic editor, its tail stays put when you change the sweep, and its defaults are the sound chosen by ear in blind rounds. The real panel comes next.
+Very early. Kikkuh plays a synthesized kick that you shape on one printed panel of knobs, in the order of the signal. You can
+hear it without MIDI, with a hit pad and a loop in your host's tempo. Its defaults are the sound chosen by ear in blind rounds.
+Click, Top, Master and Rumble come next.
 Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 
 ## What works today
 - Builds as VST3, AU and CLAP and installs itself into `~/Library/Audio/Plug-Ins/`.
+- One panel on one screen, resizable from 80 to 200 %: drag a knob, Shift for fine, double-click or Cmd-click for its default, click its value to type (`F#0`, `1k`).
+- The hit pad plays the kick, and Loop plays it on quarter notes: on your host's grid while the transport runs, free at its tempo while it stands still. Neither ends up in a bounce or in your project.
+- The panel shows the note the tail actually lands on.
 - A MIDI note plays a kick, sample-accurately, at zero latency. A new note cuts off the one that rings without a click.
 - Velocity sets how much the note's velocity changes its level; Key Track makes the kick play the note you play.
 - Wave morphs from sine through triangle and saw to square, band-limited.

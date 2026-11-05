@@ -1,5 +1,6 @@
 #pragma once
 
+#include <dsp/AuditionLoop.h>
 #include <dsp/BodyVoice.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
@@ -37,16 +38,35 @@ public:
     double getTailNote() const { return dsp::bodyTailNote (readParams()); }
     juce::String getTailReadout() const { return dsp::bodyNoteReadout (getTailNote()); }
 
+    // FAST-01: the audition. Message thread; the audio thread reads atomics.
+    void pressPad() { padPressed = true; }
+    void setLoop (bool on) { loopOn = on; }
+    bool isLoopOn() const { return loopOn; }
+    // FAST-01n: go up on every kick and every loop hit, so the panel can light.
+    int getKickCount() const { return kicks; }
+    int getLoopHitCount() const { return loopHits; }
+
+    // FAST-05: what the panel needs. Message thread; the panel width is not part of the saved state.
+    juce::AudioProcessorValueTreeState& getValueTreeState() { return apvts; }
+    int getPanelWidth() const { return panelWidth; }
+    void setPanelWidth (int width) { panelWidth = width; }
+
 private:
     static constexpr int stateVersion = 3;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     dsp::BodyParams readParams() const;
     void migrate (juce::XmlElement& xml, int fromVersion);
+    void beginLoop (int numSamples, bool on);
 
     juce::AudioProcessorValueTreeState apvts;
     std::array<std::atomic<float>*, 19> raw {};
     dsp::BodyVoice voice;
+    dsp::AuditionLoop loop;
+    double sampleRate = 44100.0;
+    std::atomic<bool> padPressed { false }, loopOn { false };
+    std::atomic<int> kicks { 0 }, loopHits { 0 };
+    int panelWidth = 1144;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };

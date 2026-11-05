@@ -225,10 +225,10 @@ TEST_CASE ("fast_05b_one_screen_in_signal_order_at_every_size")
     });
 
     const auto width = panel.editor->getWidth();
-    REQUIRE (width == 1124);
+    REQUIRE (width == 1154);
     for (const auto scale : { 1.0, 0.8, 2.0 })
     {
-        panel.editor->setSize (juce::roundToInt (1124 * scale), juce::roundToInt (318 * scale));
+        panel.editor->setSize (juce::roundToInt (1154 * scale), juce::roundToInt (318 * scale));
         INFO (scale);
         checkLayout (*panel.editor);
 
@@ -260,19 +260,19 @@ TEST_CASE ("fast_05b_one_screen_in_signal_order_at_every_size")
 TEST_CASE ("fast_05c_resizable_at_a_fixed_ratio_and_the_size_comes_back")
 {
     Panel panel;
-    CHECK (panel.editor->getWidth() == 1124);
+    CHECK (panel.editor->getWidth() == 1154);
     CHECK (panel.editor->getHeight() == 318);
     CHECK (panel.editor->isResizable());
     auto* limits = panel.editor->getConstrainer();
     REQUIRE (limits != nullptr);
-    CHECK (limits->getFixedAspectRatio() == Catch::Approx (1124.0 / 318.0).margin (0.001));
-    CHECK (limits->getMinimumWidth() == Catch::Approx (1124 * 0.8).margin (1.0));
-    CHECK (limits->getMaximumWidth() == 2248);
+    CHECK (limits->getFixedAspectRatio() == Catch::Approx (1154.0 / 318.0).margin (0.001));
+    CHECK (limits->getMinimumWidth() == Catch::Approx (1154 * 0.8).margin (1.0));
+    CHECK (limits->getMaximumWidth() == 2308);
 
-    panel.editor->setSize (1405, 398);
+    panel.editor->setSize (1442, 397);
     panel.editor = nullptr;
     panel.editor.reset (panel.plugin.createEditor());
-    CHECK (panel.editor->getWidth() == 1405);
+    CHECK (panel.editor->getWidth() == 1442);
 }
 
 TEST_CASE ("fast_05d_a_knob_moves_as_a_pro_expects")
@@ -311,6 +311,29 @@ TEST_CASE ("fast_05d_a_knob_moves_as_a_pro_expects")
         velocity.mouseDrag (mouseAt (velocity, start.translated (0.0f, -120.0f), start, juce::ModifierKeys::shiftModifier, true));
         CHECK (velocity.getValue() == Catch::Approx (30.0).margin (0.5));
         velocity.mouseUp (mouseAt (velocity, start.translated (0.0f, -120.0f), start, {}, true));
+    }
+    SECTION ("on Tune a semitone takes 12 points, and with Shift 60")
+    {
+        auto& tune = knob (panel, "body_tune");
+        tune.setValue (33.0, juce::sendNotificationSync);
+        drag (tune, 120.0f);
+        CHECK (tune.getValue() == Catch::Approx (43.0).margin (0.5));
+        tune.setValue (33.0, juce::sendNotificationSync);
+        drag (tune, 120.0f, juce::ModifierKeys::shiftModifier);
+        CHECK (tune.getValue() == Catch::Approx (35.0).margin (0.5));
+    }
+    SECTION ("the wheel is 5 times finer with Shift")
+    {
+        const auto wheel = [&] (float dx, float dy, juce::ModifierKeys mods) {
+            velocity.setValue (0.0, juce::sendNotificationSync);
+            juce::Thread::sleep (3); // the slider ignores a second event with the same time
+            velocity.mouseWheelMove (mouseAt (velocity, { 10.0f, 10.0f }, { 10.0f, 10.0f }, mods, false), { dx, dy, false, false, false });
+            return velocity.getValue();
+        };
+        const auto plain = wheel (0.0f, 0.1f, {});
+        REQUIRE (plain > 0.5);
+        CHECK (wheel (0.0f, 0.1f, juce::ModifierKeys::shiftModifier) == Catch::Approx (plain / 5.0).margin (plain * 0.05));
+        CHECK (wheel (-0.1f, 0.0f, juce::ModifierKeys::shiftModifier) == Catch::Approx (plain / 5.0).margin (plain * 0.05));
     }
     SECTION ("double-click and Cmd-click return to the default; the wheel works")
     {
@@ -432,6 +455,81 @@ TEST_CASE ("fast_05j_typing_a_value")
                 CHECK (slider->getTextFromValue (slider->getValueFromText (shown)) == shown);
             }
         }
+    }
+}
+
+TEST_CASE ("fast_05l_one_grid")
+{
+    Panel panel;
+    const auto area = [&] (const juce::String& id) {
+        auto* c = findById (*panel.editor, id);
+        REQUIRE (c != nullptr);
+        return c->getBounds();
+    };
+    const auto discY = [&] (const juce::String& id) {
+        auto& s = knob (panel, id);
+        return s.getY() + s.getLookAndFeel().getSliderLayout (s).sliderBounds.getCentreY();
+    };
+    const auto valueY = [&] (const juce::String& id) {
+        auto& s = knob (panel, id);
+        return s.getY() + s.getLookAndFeel().getSliderLayout (s).textBoxBounds.getY();
+    };
+
+    const std::vector<juce::String> top { "body_pitch_amount", "body_pitch_decay", "body_pitch_shape", "body_tune", "body_wave",
+                                          "body_amp_decay", "body_amp_shape", "body_drive", "body_filter_cutoff", "body_filter_res" };
+    const std::vector<juce::String> bottom { "play_velocity", "body_sweep2_amount", "body_sweep2_decay", "body_start",
+                                             "body_amp_attack", "body_amp_hold", "body_filter_env" };
+
+    SECTION ("each row has one line for discs and one for values")
+    {
+        for (const auto& row : { top, bottom })
+            for (const auto& id : row)
+            {
+                INFO (id);
+                CHECK (discY (id) == discY (row.front()));
+                CHECK (valueY (id) == valueY (row.front()));
+                CHECK (area (id).getY() == area (row.front()).getY());
+            }
+        CHECK (discY (top.front()) != discY (bottom.front()));
+    }
+    SECTION ("switches and the readout stand on the bottom row")
+    {
+        for (const auto* id : { "play_key_track", "body_tail_anchor" })
+            CHECK (area (id).getCentreY() == discY (bottom.front()));
+        CHECK (area ("tail_readout").getY() == area (bottom.front()).getY());
+        CHECK (area ("tail_readout").getBottom() == area (bottom.front()).getBottom());
+    }
+    SECTION ("a bottom control stands under the top knob of its column")
+    {
+        const std::pair<const char*, const char*> columns[] = {
+            { "body_sweep2_amount", "body_pitch_amount" }, { "body_sweep2_decay", "body_pitch_decay" }, { "body_tail_anchor", "body_pitch_shape" },
+            { "body_start", "body_tune" }, { "tail_readout", "body_wave" }, { "body_amp_attack", "body_amp_decay" },
+            { "body_amp_hold", "body_amp_shape" }, { "body_filter_env", "body_filter_cutoff" }
+        };
+        for (const auto& [below, above] : columns)
+        {
+            INFO (below);
+            CHECK (area (below).getCentreX() == area (above).getCentreX());
+        }
+    }
+    SECTION ("columns in a section are 88 points apart")
+    {
+        const std::pair<const char*, const char*> neighbours[] = {
+            { "body_pitch_amount", "body_pitch_decay" }, { "body_pitch_decay", "body_pitch_shape" }, { "body_tune", "body_wave" },
+            { "body_amp_decay", "body_amp_shape" }, { "body_filter_cutoff", "body_filter_res" }
+        };
+        for (const auto& [left, right] : neighbours)
+        {
+            INFO (left);
+            CHECK (area (right).getCentreX() - area (left).getCentreX() == 88);
+        }
+    }
+    SECTION ("the pad and the Loop switch line up with the row below")
+    {
+        CHECK (area ("audition_pad").getX() == area ("audition_loop").getX());
+        CHECK (area ("audition_pad").getRight() == area ("audition_loop").getRight());
+        CHECK (area ("audition_loop").getRight() == area ("play_key_track").getRight());
+        CHECK (area ("audition_loop").getBottom() == area (top.front()).getBottom());
     }
 }
 

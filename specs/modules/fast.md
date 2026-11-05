@@ -10,7 +10,7 @@ How it feels is for the owner's run. Sizes are in panel points at 100 %. The rea
 
 ## The panel
 
-A printed instrument front of 1124 x 318 points. A printed line runs from the name "Kikkuh" to the output, in the real
+A printed instrument front of 1154 x 318 points. A printed line runs from the name "Kikkuh" to the output, in the real
 order of the signal: the sweep drives the oscillator, so PITCH comes before OSC. Controls that belong together sit closer.
 
 | Section | Controls (id), with knob size |
@@ -20,7 +20,13 @@ order of the signal: the sweep drives the oscillator, so PITCH comes before OSC.
 | OSC | Tune L (`body_tune`), Wave M (`body_wave`), Start S (`body_start`), tail readout |
 | AMP | Decay L (`body_amp_decay`), Shape M (`body_amp_shape`), Attack S (`body_amp_attack`), Hold S (`body_amp_hold`) |
 | DRIVE | Drive L (`body_drive`) |
-| FILTER | Cutoff L (`body_filter_cutoff`), Resonance S (`body_filter_res`), Env S (`body_filter_env`) |
+| FILTER | Cutoff L (`body_filter_cutoff`), Resonance M (`body_filter_res`), Env S (`body_filter_env`) |
+
+**One grid.** Two rows: L and M knobs on top, S knobs and switches below. Each row has one line for the discs' centres, one for
+labels and one for values. A column is 88 points wide, and a bottom control stands under the top knob of its column, in the
+table's order: Sweep 2 Amount under Pitch Amount, Sweep 2 Decay under Pitch Decay, Tail Anchor under Pitch Shape, Start under Tune, the tail
+readout under Wave, Attack under Amp Decay, Hold under Amp Shape, Env under Cutoff. The tail readout is laid out as a knob: the note on the
+disc line, its caption on the label line, the cents on the value line. (Changed after the first run, owner, 2026-11-05.)
 
 Knobs are 68, 52 and 38 points across (L, M, S). A knob is a flat disc with a pointer, printed ticks around it and one
 heavier tick at the parameter's default. There are no gradients, shadows or glows.
@@ -47,8 +53,9 @@ empty places for them.
   and text scale by one factor. The default size is 100 %, and the size comes back when the editor is reopened on the same
   instance.
 - **FAST-05d** Moving a control sets its parameter, and a change from the host moves the control. Dragging is vertical:
-  240 points cover the whole range. With Shift it is 5 times finer, and pressing or releasing Shift during a drag does not
-  make the value jump. The wheel moves a knob the mouse is over. Double-click and Cmd-click (Ctrl-click on Windows) return
+  240 points cover the whole range, and on Tune each semitone takes 12 points, because at 240 a note is hard to hit. With Shift it is
+  5 times finer, and pressing or releasing Shift during a drag does not make the value jump. The wheel moves a knob the mouse is over, and
+  with Shift it is 5 times finer as well, on macOS as a horizontal wheel too. Double-click and Cmd-click (Ctrl-click on Windows) return
   it to the parameter's default.
 - **FAST-05e** A knob's movement follows the parameter's own range, including its centre: the knob at its middle position
   on Pitch Decay reads 60 ms, on Cutoff 632 Hz.
@@ -63,6 +70,9 @@ empty places for them.
   other knobs a number with or without its unit and with "k" for thousands ("1k", "40 ms", "1.20 kHz"). The text a knob
   shows, typed back unchanged, leaves it on the same value within the shown precision. A value is shown with its unit,
   and Cutoff from 1000 Hz up in kHz.
+- **FAST-05l** The grid holds: within a row, discs share their centre line, labels and values their line, and switches are centred on the
+  disc line. A bottom control's centre lies on its column. Columns within a section are 88 points apart. The pad and the Loop switch share
+  their left and right edges with the row below them, and the Loop switch ends on the top row's value line.
 - **FAST-05k** Legibility: the secondary print on the plate has a contrast of at least 4.5:1, the WCAG floor for text.
   Labels and values are 13 points at 100 %, and no text on a label is below 11.
 

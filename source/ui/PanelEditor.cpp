@@ -216,6 +216,9 @@ public:
         g.setFont (lf.font (PanelLookAndFeel::Cut::value, 12.0f));
         g.drawText ("by Colourmotion", 23, 58, 200, 16, juce::Justification::topLeft);
 
+        g.setColour (colour (panel::print));
+        for (const int x : panel::sectionLines)
+            g.fillRect (x, 37, 1, 264); // FAST-05m
         drawFlow (g, lf);
         drawSweep (g, lf);
     }

@@ -82,12 +82,13 @@ void Knob::mouseDown (const juce::MouseEvent& e)
     lastY = e.position.y;
     norm = valueToProportionOfLength (getValue());
     markValue (true);
+    e.source.enableUnboundedMouseMovement (true, true); // no stop at the screen's edge; JUCE switches it off on mouse-up
 }
 
-// 240 points cover the range, 1200 with Shift; on Tune 12 points a semitone, 432 and 2160. Incremental, so Shift pressed or released mid-drag does not jump.
+// 240 points cover the range, 1200 with Shift; on Tune 30 points a semitone, 1080 and 5400. Incremental, so Shift pressed or released mid-drag does not jump.
 void Knob::mouseDrag (const juce::MouseEvent& e)
 {
-    const auto range = getComponentID() == "body_tune" ? 432.0 : 240.0;
+    const auto range = getComponentID() == "body_tune" ? 1080.0 : 240.0;
     norm = juce::jlimit (0.0, 1.0, norm + (lastY - e.position.y) / (e.mods.isShiftDown() ? range * 5.0 : range));
     lastY = e.position.y;
     setValue (proportionOfLengthToValue (norm), juce::sendNotificationSync);

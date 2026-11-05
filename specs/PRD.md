@@ -9,7 +9,7 @@ Ids are stable so the owner can comment per line. They become full acceptance cr
 From the kick in your head to the kick in your track, fast, with knobs like a subtractive synth.
 Rumble is part of the instrument. Curves exist for those who want them, and you never need them.
 
-**Success test (CORE-01).** The owner picks three reference kicks and gets each close enough to use
+**Success test (CORE-01).** The owner picks four reference kicks and gets each close enough to use
 within 3 minutes, knobs only, in the first playable build and again at every UI change. If this
 fails, the panel changes before anything else gets built.
 

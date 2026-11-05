@@ -1,14 +1,14 @@
 # Module spec: body (BODY)
 
-Status: **approved by the owner (2026-11-03). Scope: BODY-01..04, built by VS1-01.** BODY-05..07
-(filter, drive, tail anchor) come with VS1-03 and VS1-04. BODY-05, 06, 08, 09 and 10 are written from the
+Status: **approved by the owner (2026-11-03). Scope: BODY-01..04, built by VS1-01.** BODY-05..06
+(filter, drive) come with VS1-03. BODY-07 (tail anchor) comes with VS1-04, approved by the owner (2026-11-04). BODY-05, 06, 08, 09 and 10 are written from the
 owner's choices in VS1-09 (`tests/manual/runs/2026-11-04-VS1-09.md`) and approved with that PR. This voice
 replaces the fixed test kick of BUILD-06.
 
 Time runs in seconds, so everything below holds from 44.1 to 192 kHz (ENG-04). Unless a criterion
 says otherwise, "level" is at velocity 127 with the other knobs at their defaults. Velocity scales
 the level linearly until PLAY-01 adds its knob, and every MIDI note plays the same kick (PLAY-02 off).
-BODY-01..04 describe the voice itself: since BODY-08 they are measured with Drive 0, Start 0 and Sweep 2 Amount 0.
+BODY-01..04 describe the voice itself: since BODY-08 they are measured with Drive 0, Start 0 and Sweep 2 Amount 0, and since BODY-07 with Tail Anchor off.
 
 ## Parameters
 
@@ -138,6 +138,55 @@ before-the-amp lost at 12 dB, and hard at 3 and 6 dB won over everything at 12 d
   The output is exactly 0 before the note's sample and starts within two samples of it. What goes through the clip is
   delayed by less than 0.1 ms (5 samples at 48 kHz) against Drive 0.
 - **BODY-06f** ENG-01 holds: a full-range jump during a tail stays below a step of 0.05 at a level below clipping.
+
+### BODY-07 Tail anchor (VS1-04)
+
+**What can stay identical.** The oscillator's phase is Start plus every cycle played since the note-on. A pitch knob
+changes how many cycles the sweep plays, so in the classic behaviour the tail lands on a different phase with every
+move: from the defaults at A0 the tail stands at 0.32 of a cycle, at Amount 48 at 0.04, at Pitch Decay 20 ms at 0.49
+(a model of the voice, not a measured render). The sweep itself cannot stay identical: it is what the knob changes. So the anchor holds the part after the
+sweep: its phase becomes `Start + Tune Hz * t`, as if the kick had played Tune from the note-on, whatever the sweep did.
+
+**Why the sweep bends.** Start also fixes the phase at the note-on (BODY-10), and the sweep plays a number of cycles
+that is rarely whole. Both ends can hold only if the sweep gains or loses up to half a cycle. The anchor multiplies its
+frequency by `1 + e * (1 - t/W)`, with `e` set per note so that the kick lands on the anchored phase. The bend is largest at the note-on,
+where the pitch is high, and gone at `W`. `W` is the later of Pitch Decay and 50 ms, or with Pitch Amount 0 the later of
+Sweep 2 Decay and 50 ms. A second stage that outlasts `W` keeps its own pitch: its remaining cycles are counted in `e`.
+
+| Id | Knob | Range | Default | Knob feel |
+| --- | --- | --- | --- | --- |
+| `body_tail_anchor` | Tail Anchor | off, on | on | switch, read at the note-on as Start is |
+
+"Pitch knobs" are Pitch Amount, Pitch Decay, Pitch Shape, Sweep 2 Amount and Sweep 2 Decay. Tune and Start move the
+tail on purpose. Wave and the amp knobs do not touch the phase, with the anchor on or off. In BODY-07b, c and e "the
+bare voice" is Drive 0 with the filter open, because Drive and the filter have a memory (BODY-07g).
+
+- **BODY-07a** Off is classic: with Tail Anchor off the bare voice is sample-identical to an oscillator fed the pitch of
+  BODY-09a from Start, for several settings of the pitch knobs.
+- **BODY-07b** All sweeps done: two renders of the bare voice with Tail Anchor on, differing in any pitch knobs, are
+  sample-identical (exactly equal floats) from `T + 50 ms`, where `T` is the latest `W` and Sweep 2 Decay of the two.
+- **BODY-07c** Second stage still running: if the two differ only in Pitch Amount, Decay or Shape, they also agree from
+  the later `W + 50 ms` until BODY-07b takes over, with the largest difference below -80 dB (measured in VS1-04: one float step, about -144 dB). At the defaults that is the audible tail, from 100 ms, where BODY-07b alone starts at 350 ms, where the amp stands at -54 dB.
+- **BODY-07d** Start holds: with Tail Anchor on the first sample is the same as with it off, for any pitch knobs. BODY-10a
+  holds at Start 0 and 90.
+- **BODY-07e** The bend is limited: the phase gained or lost by the bend is at most half a cycle. Pitch follows BODY-09a from
+  `W` on within 1 cent, and before it within `1200 * log2 (1 + e)` cents. Without a sweep (both Amounts 0) `e` is 0
+  and on matches off within -120 dB: on takes its tail's phase from the clock, as BODY-07b needs, and off adds it up. Limit, proposed: at A0, for Amount 12..72, Decay 5..160 ms, Shape -50..+60, Sweep 2
+  Amount 0 or 6, the bend at the note-on stays below 600 cents. The model gives a median of 82; measured, the maximum is 534.
+- **BODY-07f** The defaults keep their numbers: BODY-08a, b and c hold with Tail Anchor on. BODY-02d, BODY-03 and
+  BODY-09 are measured with it off; the readout does not count the bend. The default kick's bend is -62 cents at the note-on, measured, and -38 cents at 20 ms in
+  the model.
+- **BODY-07g** Drive and the filter remember what went in, so after them the tails converge instead of being identical. At the
+  defaults the difference between two renders of BODY-07b falls below -80 dB within 50 ms of `T + 50 ms` (measured in VS1-04: exactly 0
+  from `T + 50 ms`, with the kick held at full level through the clip). With the filter closed it rings for as long as the filter rings; no limit.
+- **BODY-07h** Key Track: the note that plays takes Tune's place. A note with Key Track on is sample-identical to the same
+  note on Tune with it off. Two different notes have different pitches, so there is nothing to compare.
+- **BODY-07i** ENG-04: the tail's phase against `Start + Tune Hz * t` stays within 0.01 cycle at 44.1, 48, 96 and 192 kHz.
+- **BODY-07j** A knob moved during the sweep cannot be foreseen, so that kick misses its landing. What it misses slides away
+  within 50 ms, and ENG-01c holds: no step above 0.05. ENG-01d holds: the calculation at the note-on has a fixed cost and does not
+  allocate. The switch moved during a kick works from the next note, without a click.
+- **BODY-07k** A project saved before this change keeps its sound (ENG-06a): state version 3, and a state with knobs but
+  without this one gets Tail Anchor off. A VS0-01 state holds no knobs and takes the default, on, as BODY-08d says.
 
 ### BODY-08 New defaults (VS1-10)
 

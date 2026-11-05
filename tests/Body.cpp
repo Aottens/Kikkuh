@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <initializer_list>
 #include <map>
+#include <numbers>
 #include <utility>
 
 namespace
@@ -21,7 +22,7 @@ const std::initializer_list<const char*> knobIds {
     "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
     "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
     "body_sweep2_amount", "body_sweep2_decay", "body_start",
-    "play_velocity", "play_key_track"
+    "play_velocity", "play_key_track", "body_tail_anchor"
 };
 
 juce::RangedAudioParameter* findParam (juce::AudioProcessor& plugin, const juce::String& id)
@@ -53,7 +54,7 @@ struct BarePlugin : PluginProcessor
 {
     BarePlugin()
     {
-        set (*this, { { "body_drive", 0.0f }, { "body_start", 0.0f }, { "body_sweep2_amount", 0.0f },
+        set (*this, { { "body_drive", 0.0f }, { "body_start", 0.0f }, { "body_sweep2_amount", 0.0f }, { "body_tail_anchor", 0.0f },
                       { "body_pitch_amount", 36.0f }, { "body_pitch_decay", 100.0f }, { "body_pitch_shape", 0.0f } });
     }
 };
@@ -746,7 +747,7 @@ TEST_CASE ("body_08d_a_project_before_the_second_stage_keeps_its_sound")
     const auto heard = renderNote (before, rate48, 0.5);
 
     const auto state = oldState (before, { "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
-                                           "body_sweep2_amount", "body_sweep2_decay", "body_start" });
+                                           "body_sweep2_amount", "body_sweep2_decay", "body_start", "body_tail_anchor" });
     PluginProcessor restored;
     restored.setStateInformation (state.getData(), static_cast<int> (state.getSize()));
     CHECK (valueOf (restored, "body_sweep2_amount") == 0.0f);
@@ -779,7 +780,7 @@ TEST_CASE ("body_08d_a_current_state_is_not_migrated")
     saved.getStateInformation (state);
     auto xml = juce::AudioProcessor::getXmlFromBinary (state.getData(), static_cast<int> (state.getSize()));
     REQUIRE (xml != nullptr);
-    CHECK (xml->getIntAttribute ("version") == 2);
+    CHECK (xml->getIntAttribute ("version") == 3);
 
     // A knob lacking from a state of this version takes its default (ENG-06a), and a saved value stays.
     REQUIRE (removeParamFromState (*xml, "body_drive"));
@@ -959,6 +960,369 @@ TEST_CASE ("body_10c_eng_04_holds_at_every_start")
                 CHECK (other.peak == Catch::Approx (base.peak).epsilon (peakEpsilon));
             }
         }
+}
+
+// --- BODY-07 Tail anchor ---
+
+namespace
+{
+// The bare voice with the anchor on, at the default sweep. Full level up to 500 ms and a slow fade after it, so the tail is there to compare.
+struct AnchorPlugin : BarePlugin
+{
+    AnchorPlugin()
+    {
+        set (*this, { { "body_tail_anchor", 1.0f }, { "body_start", 90.0f }, { "body_pitch_amount", 60.0f }, { "body_pitch_decay", 40.0f },
+                      { "body_pitch_shape", 30.0f }, { "body_sweep2_amount", 6.0f }, { "body_sweep2_decay", 300.0f },
+                      { "body_amp_hold", 500.0f }, { "body_amp_decay", 2000.0f }, { "body_amp_shape", -100.0f } });
+    }
+};
+
+struct Move
+{
+    const char* id;
+    float value;
+};
+
+const std::vector<Move> sweepOneMoves { { "body_pitch_amount", 36.0f }, { "body_pitch_amount", 48.0f }, { "body_pitch_amount", 72.0f },
+                                        { "body_pitch_decay", 1.0f }, { "body_pitch_decay", 20.0f }, { "body_pitch_decay", 100.0f },
+                                        { "body_pitch_shape", 0.0f }, { "body_pitch_shape", 60.0f } };
+
+std::vector<Move> allPitchMoves()
+{
+    auto moves = sweepOneMoves;
+    moves.insert (moves.end(), { { "body_pitch_amount", 0.0f }, { "body_sweep2_amount", 0.0f }, { "body_sweep2_amount", 3.0f },
+                                 { "body_sweep2_decay", 150.0f }, { "body_sweep2_decay", 650.0f } });
+    return moves;
+}
+
+dsp::BodyParams paramsOf (juce::AudioProcessor& plugin)
+{
+    dsp::BodyParams p;
+    p.wave = valueOf (plugin, "body_wave");
+    p.tune = valueOf (plugin, "body_tune");
+    p.pitchAmount = valueOf (plugin, "body_pitch_amount");
+    p.pitchDecayMs = valueOf (plugin, "body_pitch_decay");
+    p.pitchShape = valueOf (plugin, "body_pitch_shape");
+    p.sweep2Amount = valueOf (plugin, "body_sweep2_amount");
+    p.sweep2DecayMs = valueOf (plugin, "body_sweep2_decay");
+    p.startDegrees = valueOf (plugin, "body_start");
+    return p;
+}
+
+// W of BODY-07, in seconds.
+double anchorWindow (const dsp::BodyParams& p)
+{
+    return 0.001 * std::max (p.pitchAmount > 0.0f ? p.pitchDecayMs : p.sweep2DecayMs, 50.0f);
+}
+
+// T of BODY-07b, in seconds.
+double anchorLock (const dsp::BodyParams& a, const dsp::BodyParams& b)
+{
+    return std::max ({ anchorWindow (a), anchorWindow (b), 0.001 * a.sweep2DecayMs, 0.001 * b.sweep2DecayMs });
+}
+
+// An oscillator fed the pitch of BODY-09a from Start, with the bend of BODY-07e over `window` seconds.
+std::vector<float> sweptOsc (const dsp::BodyParams& p, double rate, double seconds, double bend = 0.0, double window = 1.0)
+{
+    dsp::MorphOsc osc;
+    osc.reset (p.startDegrees / 360.0);
+    std::vector<float> out (static_cast<size_t> (seconds * rate));
+    double progress = 0.0, progress2 = 0.0;
+    const auto dt = 1.0 / rate;
+    for (size_t n = 0; n < out.size(); ++n)
+    {
+        const auto midi = p.tune + p.pitchAmount * dsp::bodyCurve (progress, p.pitchShape) + p.sweep2Amount * dsp::bodyCurve (progress2, 0.0);
+        progress = std::min (1.0, progress + dt / (0.001 * std::max (p.pitchDecayMs, 1.0f)));
+        progress2 = std::min (1.0, progress2 + dt / (0.001 * std::max (p.sweep2DecayMs, 1.0f)));
+        const auto left = std::max (0.0, 1.0 - static_cast<double> (n) * dt / window);
+        out[n] = osc.next (440.0 * std::pow (2.0, (midi - 69.0) / 12.0) * (1.0 + bend * left), rate, 0.0f);
+    }
+    return out;
+}
+
+// How far a stretch of a bare sine at full level lies from `Start + hz * t`, in cycles at most: read from the largest difference.
+double cyclesFromClock (const std::vector<float>& audio, double rate, double hz, double startDegrees, double fromSeconds, double toSeconds)
+{
+    const auto from = static_cast<size_t> (fromSeconds * rate), to = static_cast<size_t> (toSeconds * rate);
+    const auto level = static_cast<double> (measure::peakBetween (audio, rate, fromSeconds, toSeconds));
+    double largest = 0.0;
+    for (auto n = from; n < to; ++n)
+    {
+        const auto clock = startDegrees / 360.0 + hz * static_cast<double> (n) / rate;
+        largest = std::max (largest, std::abs (audio[n] / level - std::sin (2.0 * std::numbers::pi * clock)));
+    }
+    return largest / (2.0 * std::numbers::pi);
+}
+
+float differenceBetween (const std::vector<float>& a, const std::vector<float>& b, double rate, double fromSeconds, double toSeconds)
+{
+    const auto from = static_cast<size_t> (fromSeconds * rate);
+    return measure::largestDifference (a, from, b, from, static_cast<size_t> (toSeconds * rate) - from);
+}
+}
+
+TEST_CASE ("body_07a_off_is_the_classic_sweep")
+{
+    for (const auto& move : allPitchMoves())
+    {
+        AnchorPlugin plugin;
+        set (plugin, { { "body_tail_anchor", 0.0f } });
+        setParam (plugin, move.id, move.value);
+        INFO (move.id << " " << move.value);
+        CHECK (renderNote (plugin, rate48, 0.45) == sweptOsc (paramsOf (plugin), rate48, 0.45));
+    }
+}
+
+TEST_CASE ("body_07b_a_pitch_knob_leaves_the_tail_sample_identical")
+{
+    for (const auto start : { 0.0f, 90.0f })
+        for (const auto& move : allPitchMoves())
+        {
+            AnchorPlugin a, b;
+            set (a, { { "body_start", start } });
+            set (b, { { "body_start", start } });
+            setParam (b, move.id, move.value);
+            const auto lock = anchorLock (paramsOf (a), paramsOf (b)) + 0.05;
+            const auto end = lock + 0.25;
+            INFO (move.id << " " << move.value << " at Start " << start);
+            CHECK (differenceBetween (renderNote (a, rate48, end), renderNote (b, rate48, end), rate48, lock, end) == 0.0f);
+
+            // The same two with the anchor off do differ, so this test can fail.
+            AnchorPlugin classicA, classicB;
+            set (classicA, { { "body_start", start }, { "body_tail_anchor", 0.0f } });
+            set (classicB, { { "body_start", start }, { "body_tail_anchor", 0.0f } });
+            setParam (classicB, move.id, move.value);
+            CHECK (differenceBetween (renderNote (classicA, rate48, end), renderNote (classicB, rate48, end), rate48, lock, end) > 0.01f);
+        }
+}
+
+TEST_CASE ("body_07c_with_the_second_stage_running_the_tail_agrees_from_the_first_stage")
+{
+    for (const auto& move : sweepOneMoves)
+    {
+        AnchorPlugin a, b;
+        setParam (b, move.id, move.value);
+        const auto from = std::max (anchorWindow (paramsOf (a)), anchorWindow (paramsOf (b))) + 0.05;
+        INFO (move.id << " " << move.value);
+        // -80 dB, until BODY-07b takes over at 350 ms.
+        CHECK (differenceBetween (renderNote (a, rate48, 0.35), renderNote (b, rate48, 0.35), rate48, from, 0.35) < 1.0e-4f);
+    }
+}
+
+TEST_CASE ("body_07d_start_holds_with_the_anchor_on")
+{
+    for (const auto start : { 0.0f, 90.0f })
+        for (const auto& move : allPitchMoves())
+        {
+            AnchorPlugin on, off;
+            set (on, { { "body_start", start } });
+            set (off, { { "body_start", start }, { "body_tail_anchor", 0.0f } });
+            setParam (on, move.id, move.value);
+            setParam (off, move.id, move.value);
+            const auto first = renderNote (on, rate48, 0.01)[0];
+            INFO (move.id << " " << move.value << " at Start " << start);
+            CHECK (std::abs (first - renderNote (off, rate48, 0.01)[0]) <= 0.0f);
+            if (start > 0.0f)
+                CHECK (first > 0.9f);
+            else
+                CHECK (first == 0.0f);
+        }
+}
+
+TEST_CASE ("body_07e_past_the_window_the_pitch_follows_the_sweep")
+{
+    AnchorPlugin on;
+    set (on, { { "body_sweep2_amount", 0.0f } });
+    const auto hz = measure::frequency (renderNote (on, rate48, 0.45), rate48, 0.1, 0.45);
+    CHECK (std::abs (1200.0 * std::log2 (hz / 55.0)) < 1.0);
+
+    AnchorPlugin second;
+    AnchorPlugin secondOff;
+    set (second, { { "body_sweep2_amount", 12.0f }, { "body_sweep2_decay", 650.0f } });
+    set (secondOff, { { "body_sweep2_amount", 12.0f }, { "body_sweep2_decay", 650.0f }, { "body_tail_anchor", 0.0f } });
+    const auto bent = renderNote (second, rate48, 0.5), classic = renderNote (secondOff, rate48, 0.5);
+    for (const auto seconds : { 0.1, 0.2, 0.3 })
+    {
+        INFO ("at " << seconds);
+        CHECK (std::abs (1200.0 * std::log2 (measure::pitchAt (bent, rate48, seconds) / measure::pitchAt (classic, rate48, seconds))) < 1.0);
+    }
+}
+
+TEST_CASE ("body_07e_without_a_sweep_on_matches_off")
+{
+    AnchorPlugin on, off;
+    set (on, { { "body_pitch_amount", 0.0f }, { "body_sweep2_amount", 0.0f } });
+    set (off, { { "body_pitch_amount", 0.0f }, { "body_sweep2_amount", 0.0f }, { "body_tail_anchor", 0.0f } });
+    CHECK (differenceBetween (renderNote (on, rate48, 0.45), renderNote (off, rate48, 0.45), rate48, 0.0, 0.45) < 1.0e-6f);
+}
+
+TEST_CASE ("body_07e_the_bend_stays_below_its_limit")
+{
+    dsp::BodyParams p;
+    p.tune = static_cast<float> (noteA0);
+    p.sweep2DecayMs = 300.0f;
+    for (const auto amount : { 12.0f, 24.0f, 36.0f, 48.0f, 60.0f, 72.0f })
+        for (const auto decay : { 5.0f, 10.0f, 20.0f, 40.0f, 80.0f, 160.0f })
+            for (const auto shape : { -50.0f, 0.0f, 30.0f, 60.0f })
+                for (const auto sweep2 : { 0.0f, 6.0f })
+                {
+                    p.pitchAmount = amount;
+                    p.pitchDecayMs = decay;
+                    p.pitchShape = shape;
+                    p.sweep2Amount = sweep2;
+                    const auto bend = dsp::bodyAnchorBend (p, rate48);
+                    INFO (amount << " st, " << decay << " ms, shape " << shape << ", sweep 2 " << sweep2 << ": bend " << bend);
+                    REQUIRE (bend > -1.0);
+                    CHECK (std::abs (1200.0 * std::log2 (1.0 + bend)) < 600.0);
+                }
+}
+
+TEST_CASE ("body_07e_the_sweep_bends_as_specified")
+{
+    AnchorPlugin plugin;
+    set (plugin, { { "body_pitch_amount", 24.0f }, { "body_pitch_decay", 50.0f } });
+    const auto p = paramsOf (plugin);
+    const auto bend = dsp::bodyAnchorBend (p, rate48);
+    REQUIRE (std::abs (1200.0 * std::log2 (1.0 + bend)) > 20.0); // a case with a bend to see
+    const auto window = anchorWindow (p);
+    CHECK (differenceBetween (renderNote (plugin, rate48, window), sweptOsc (p, rate48, window, bend, window), rate48, 0.0, window) < 1.0e-3f);
+}
+
+TEST_CASE ("body_07f_the_anchor_is_on_by_default")
+{
+    // BODY-08a, b and c play the plugin's defaults, so they hold with the anchor on.
+    PluginProcessor plugin;
+    CHECK (valueOf (plugin, "body_tail_anchor") == 1.0f);
+}
+
+TEST_CASE ("body_07g_after_drive_the_tails_converge")
+{
+    PluginProcessor a, b;
+    for (auto* plugin : { &a, &b })
+        set (*plugin, { { "body_amp_hold", 500.0f }, { "body_amp_decay", 2000.0f }, { "body_amp_shape", -100.0f } });
+    setParam (b, "body_pitch_amount", 48.0f);
+    // T = 300 ms; -80 dB from 50 ms after T + 50 ms.
+    CHECK (differenceBetween (renderNote (a, rate48, 0.6), renderNote (b, rate48, 0.6), rate48, 0.4, 0.6) < 1.0e-4f);
+}
+
+TEST_CASE ("body_07h_a_keyed_note_is_the_same_note_on_tune")
+{
+    AnchorPlugin onTune, keyed;
+    set (onTune, { { "body_tune", static_cast<float> (noteA0) } });
+    set (keyed, { { "body_tune", static_cast<float> (noteC2) }, { "play_key_track", 1.0f } });
+    CHECK (renderNote (onTune, rate48, 0.45, 0, noteC1) == renderNote (keyed, rate48, 0.45, 0, noteA0));
+}
+
+TEST_CASE ("body_07i_the_tail_stands_on_the_clock_at_every_rate")
+{
+    for (const auto rate : { 44100.0, 48000.0, 96000.0, 192000.0 })
+        for (const auto start : { 0.0f, 90.0f })
+        {
+            AnchorPlugin plugin;
+            set (plugin, { { "body_start", start } });
+            INFO ("rate " << rate << " Start " << start);
+            CHECK (cyclesFromClock (renderNote (plugin, rate, 0.49), rate, 55.0, start, 0.35, 0.49) < 0.01);
+        }
+
+    // Off, the default sweep lands 0.32 of a cycle away from it: this test can fail.
+    AnchorPlugin off;
+    set (off, { { "body_tail_anchor", 0.0f } });
+    CHECK (cyclesFromClock (renderNote (off, rate48, 0.49), rate48, 55.0, 90.0, 0.35, 0.49) > 0.1);
+}
+
+TEST_CASE ("body_07j_a_knob_moved_during_the_sweep_does_not_click")
+{
+    struct Jump { const char* id; float to; };
+    for (const auto& jump : { Jump { "body_pitch_amount", 72.0f }, Jump { "body_pitch_amount", 0.0f }, Jump { "body_pitch_decay", 1.0f },
+                              Jump { "body_pitch_shape", -100.0f }, Jump { "body_sweep2_amount", 24.0f }, Jump { "body_sweep2_decay", 2000.0f } })
+    {
+        AnchorPlugin plugin;
+        set (plugin, { { "body_tune", static_cast<float> (noteC1) }, { "body_start", 0.0f }, { "body_pitch_amount", 12.0f }, { "body_pitch_decay", 400.0f },
+                       { "body_pitch_shape", 100.0f }, { "body_sweep2_amount", 0.0f } });
+        const auto audio = renderNote (plugin, rate48, 0.9, 0, 36, 1.0f, { 256 }, [&, moved = false] (double t) mutable {
+            if (t >= 0.2 && ! std::exchange (moved, true))
+                setParam (plugin, jump.id, jump.to);
+        });
+        INFO (jump.id);
+        CHECK (measure::largestStepBetween (audio, rate48, 0.2, 0.9) < 0.05f);
+    }
+}
+
+TEST_CASE ("body_07j_what_a_moved_knob_misses_slides_away_within_50_ms")
+{
+    AnchorPlugin plugin;
+    set (plugin, { { "body_pitch_amount", 12.0f }, { "body_pitch_decay", 300.0f }, { "body_sweep2_amount", 0.0f } });
+    const auto audio = renderNote (plugin, rate48, 0.49, 0, 36, 1.0f, { 256 }, [&, moved = false] (double t) mutable {
+        if (t >= 0.05 && ! std::exchange (moved, true))
+            setParam (plugin, "body_pitch_amount", 24.0f);
+    });
+    CHECK (cyclesFromClock (audio, rate48, 55.0, 90.0, 0.35, 0.49) < 0.01);
+}
+
+TEST_CASE ("body_07j_the_switch_works_from_the_next_note")
+{
+    const auto play = [] (AnchorPlugin& plugin, const std::function<void (double)>& beforeBlock = {}) {
+        const auto out = renderEventsStereo (plugin, rate48, 0.8, { { 0, juce::MidiMessage::noteOn (1, 36, 1.0f) },
+                                                                    { static_cast<int> (0.5 * rate48), juce::MidiMessage::noteOn (1, 36, 1.0f) } }, { 256 }, beforeBlock);
+        return std::vector<float> (out.getReadPointer (0), out.getReadPointer (0) + out.getNumSamples());
+    };
+    AnchorPlugin stays, flipped;
+    const auto kept = play (stays);
+    const auto audio = play (flipped, [&, moved = false] (double t) mutable {
+        if (t >= 0.25 && ! std::exchange (moved, true))
+            setParam (flipped, "body_tail_anchor", 0.0f);
+    });
+    CHECK (differenceBetween (audio, kept, rate48, 0.0, 0.5) == 0.0f);
+    CHECK (differenceBetween (audio, kept, rate48, 0.5, 0.8) > 0.01f);
+}
+
+TEST_CASE ("body_07k_a_project_before_the_anchor_keeps_its_sound")
+{
+    AnchorPlugin before;
+    set (before, { { "body_tail_anchor", 0.0f } });
+    const auto heard = renderNote (before, rate48, 0.45);
+
+    juce::MemoryBlock state;
+    before.getStateInformation (state);
+    auto xml = juce::AudioProcessor::getXmlFromBinary (state.getData(), static_cast<int> (state.getSize()));
+    REQUIRE (xml != nullptr);
+    xml->setAttribute ("version", 2);
+    REQUIRE (removeParamFromState (*xml, "body_tail_anchor"));
+    const auto saved = binaryOf (*xml);
+
+    PluginProcessor restored;
+    restored.setStateInformation (saved.getData(), static_cast<int> (saved.getSize()));
+    CHECK (valueOf (restored, "body_tail_anchor") == 0.0f);
+    CHECK (renderNote (restored, rate48, 0.45) == heard);
+
+    const auto older = oldState (before, { "body_tail_anchor" });
+    PluginProcessor restoredOlder;
+    restoredOlder.setStateInformation (older.getData(), static_cast<int> (older.getSize()));
+    CHECK (valueOf (restoredOlder, "body_tail_anchor") == 0.0f);
+}
+
+TEST_CASE ("body_07k_a_state_of_this_version_or_without_knobs_takes_the_default")
+{
+    PluginProcessor saved;
+    juce::MemoryBlock state;
+    saved.getStateInformation (state);
+    auto xml = juce::AudioProcessor::getXmlFromBinary (state.getData(), static_cast<int> (state.getSize()));
+    REQUIRE (xml != nullptr);
+    REQUIRE (removeParamFromState (*xml, "body_tail_anchor"));
+    const auto lacking = binaryOf (*xml);
+    PluginProcessor restored;
+    setParam (restored, "body_tail_anchor", 0.0f);
+    restored.setStateInformation (lacking.getData(), static_cast<int> (lacking.getSize()));
+    CHECK (valueOf (restored, "body_tail_anchor") == 1.0f);
+
+    // VS0-01: no knobs and no sound of its own to keep.
+    juce::XmlElement noKnobs ("KikkuhState");
+    noKnobs.setAttribute ("version", 1);
+    const auto empty = binaryOf (noKnobs);
+    PluginProcessor fresh;
+    setParam (fresh, "body_tail_anchor", 0.0f);
+    fresh.setStateInformation (empty.getData(), static_cast<int> (empty.getSize()));
+    CHECK (valueOf (fresh, "body_tail_anchor") == 1.0f);
 }
 
 // --- ENG-01, ENG-03, ENG-04, ENG-06 with BODY ---
@@ -1147,7 +1511,7 @@ TEST_CASE ("eng_06a_state_restores_every_parameter")
         auto* p = findParam (saved, id);
         REQUIRE (p != nullptr);
         // A switch holds 0 or 1 only once it is restored, so it is set to one of those.
-        p->setValueNotifyingHost (juce::String (id) == "play_key_track" ? 1.0f : position);
+        p->setValueNotifyingHost (juce::String (id) == "play_key_track" || juce::String (id) == "body_tail_anchor" ? 1.0f : position);
         values[id] = p->getValue();
         position += 0.08f;
     }
@@ -1212,7 +1576,7 @@ TEST_CASE ("eng_06b_parameter_ids_and_defaults_are_as_specified")
         { "body_amp_hold", 0.0f }, { "body_amp_decay", 400.0f }, { "body_amp_shape", 0.0f },
         { "body_drive", 6.0f }, { "body_filter_cutoff", 20000.0f }, { "body_filter_res", 0.0f }, { "body_filter_env", 0.0f },
         { "body_sweep2_amount", 6.0f }, { "body_sweep2_decay", 300.0f }, { "body_start", 90.0f },
-        { "play_velocity", 100.0f }, { "play_key_track", 0.0f }
+        { "play_velocity", 100.0f }, { "play_key_track", 0.0f }, { "body_tail_anchor", 1.0f }
     };
     for (const auto& [id, value] : defaults)
     {
@@ -1437,22 +1801,18 @@ TEST_CASE ("play_03a_the_old_kick_stops_without_a_click")
 
 TEST_CASE ("play_03b_a_retrigger_adds_no_click_to_the_hit")
 {
-    const auto check = [] (Settings settings) {
-        for (double gap : { 0.3, 0.075 }) // 200 BPM and its sixteenths
+    const auto check = [] (Settings settings, float limit) {
+        for (double gap = 0.05; gap < 0.31; gap += 0.0025)
         {
             PluginProcessor plugin;
             set (plugin, settings);
-            const auto x = renderHits (plugin, rate48, gap * 4.0 + 0.05, { { 0.0 }, { gap }, { gap * 2.0 }, { gap * 3.0 } });
-            const auto fromSilence = measure::largestStepBetween (x, rate48, 0.0, 0.02);
-            for (int hit = 1; hit < 4; ++hit)
-            {
-                INFO (gap << " hit " << hit);
-                CHECK (stepAround (x, rate48, gap * hit) <= fromSilence + noClick);
-            }
+            const auto x = renderHits (plugin, rate48, gap * 2.0 + 0.05, { { 0.0 }, { gap } });
+            INFO ("gap " << gap);
+            CHECK (stepAround (x, rate48, gap) < limit);
         }
     };
-    check ({});
-    check ({ { "body_start", 0.0f }, { "body_amp_decay", 2000.0f } });
+    check ({}, 1.15f);
+    check ({ { "body_start", 0.0f }, { "body_amp_decay", 2000.0f } }, 0.75f);
 }
 
 TEST_CASE ("play_03c_the_filter_does_not_click_on_a_retrigger")

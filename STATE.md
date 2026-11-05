@@ -1,6 +1,6 @@
 # Kikkuh — State
 
-_Last updated: 2026-11-04 (VS1-05)_
+_Last updated: 2026-11-04 (VS1-04)_
 
 This file is the handoff: where we are, what is next, what waits. It is not a log.
 
@@ -11,13 +11,15 @@ is still a proposal. The panel is still the generic editor, so the tail readout 
 At the defaults a kick peaks at +1.17 dBFS at velocity 127, and nothing limits it until the Master section (VS3-01).
 The kick now plays: Velocity and Key Track are knobs, and a new note cuts off a ringing one without a click (3 ms fade,
 no knob). With Key Track on, a C3 at the defaults peaks at +3.1 dBFS, also unlimited until VS3-01.
+The tail anchor is on by default: pitch knobs leave the tail sample-identical, Start holds and the sweep bends by up to half a cycle, so the default kick is a little different from the one chosen in VS1-09 (-62 cents at the note-on, gone at 50 ms). Older projects keep it off (state version 3).
 clap-validator warns that scanning takes 410 ms against its 100 ms guideline; not a failure, watch it.
 
 ## Next
-1. VS1-04 (tail anchor) as its own build, with BODY-07 still to be specified; then VS1-06 (panel). Tests that read the bare voice use `BarePlugin` in
-   `tests/Body.cpp`: at the defaults the signal passes the oversampling filters, which delay and ring.
+1. VS1-06 (panel). Tests that read the bare voice use `BarePlugin` in `tests/Body.cpp`, now with the anchor off: at the
+   defaults the signal passes the oversampling filters, which delay and ring.
 
 ## Waiting for a run in Bitwig (gate 3, owner)
+- VS1-04: `tests/manual/vs1-04-tail-anchor.md`. Its step 2 is the main question: does the bend cost the chosen kick anything?
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.
 - VS1-10: `tests/manual/vs1-10-new-defaults.md`. Its step 5 warns of clicks on fast notes: fixed by VS1-05, so on this build they should be gone. Its step 6 needs an older project, and the owner has none: leave it out, as in the VS1-05 run.

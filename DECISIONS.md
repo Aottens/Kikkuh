@@ -4,6 +4,39 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-04 — Tail anchor: Start holds, the sweep bends, each stage locks on its own (VS1-04, owner)
+
+**Decision:** with the anchor on, the phase after the sweeps is `Start + Tune Hz * t`, taken from a sample counter and not
+added up. Start also holds, so the sweep's frequency is multiplied by `1 + e * (1 - t/W)`, with `e` set at the note-on so
+that at most half a cycle is gained or lost. Stage 1 can lock while the second stage runs. On by default; a project saved
+earlier keeps it off (state version 3). The note-on's calculation is 5-point Gauss-Legendre at about 10 us, because Simpson
+missed the landing by 1e-5 cycle and failed BODY-07c.
+
+**Alternatives considered:** the phase backward from the anchor, so that Start floats, which loses the full hit of round 8;
+locking only when all sweeps are done, at 350 ms, where the amp already stands at -54 dB; sliding the phase after the sweep,
+which puts the correction in the tail and moves its pitch by up to 75 cents over 200 ms.
+
+**Reasoning:** where the pitch is highest, half a cycle costs the fewest cents; whether it can be heard is for the VS1-04 run. The
+cost: the default kick bends by -62 cents at the note-on and is no longer sample-identical to the one chosen in VS1-09, and a
+short sweep on a low note bends by up to 534 cents at the note-on.
+
+**Reversal trigger:** the VS1-04 run hears the bend as a change for the worse, or CORE-01 fails on it.
+
+## 2026-11-04 — PLAY-03b holds for every gap, with a limit from what Drive does (VS1-04, owner)
+
+**Decision:** a second note 50 to 310 ms after the first stays below a step of 1.15 at the defaults, and 0.75 at Start 0 with
+Amp Decay 2000 ms.
+
+**Alternatives considered:** keeping "within 0.05 of a hit from silence" at 75 and 300 ms, which the anchor breaks at 75 ms
+(0.86 against 0.78); testing it with the anchor off, which hides the matter.
+
+**Reasoning:** the old limit held by chance. Anchor on or off, 13 of 104 gaps exceed it, up to 1.13, because Drive clips the old
+kick's negative swing just before the new hit. The new limits still fail without the fade (1.17 and 1.05).
+
+**Reversal trigger:** the owner hears a click in step 6 of the VS1-04 run.
+
+---
+
 ## 2026-11-04 — Drive: 8x minimum-phase oversampling, and a stricter alias test (VS1-03)
 
 **Decision:** the clip runs at 8x between inverse Chebyshev low-passes (order 12, 60 dB, stop edge at the base Nyquist),

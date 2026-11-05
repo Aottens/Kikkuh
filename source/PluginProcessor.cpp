@@ -6,7 +6,7 @@ constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amoun
                                      "body_amp_attack", "body_amp_hold", "body_amp_decay", "body_amp_shape",
                                      "body_drive", "body_filter_cutoff", "body_filter_res", "body_filter_env",
                                      "body_sweep2_amount", "body_sweep2_decay", "body_start",
-                                     "play_velocity", "play_key_track" };
+                                     "play_velocity", "play_key_track", "body_tail_anchor" };
 }
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
@@ -79,6 +79,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
     add ("body_filter_env", "Env Amount", ranged (0.0f, 8.0f), 0.0f, "oct", 1);
     add ("play_velocity", "Velocity", ranged (0.0f, 100.0f), 100.0f, "%", 0);
     layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "play_key_track", 1 }, "Key Track", false));
+    layout.add (std::make_unique<juce::AudioParameterBool> (juce::ParameterID { "body_tail_anchor", 1 }, "Tail Anchor", true));
     return layout;
 }
 
@@ -87,7 +88,7 @@ dsp::BodyParams PluginProcessor::readParams() const
     return { raw[0]->load(), raw[1]->load(), raw[2]->load(), raw[3]->load(), raw[4]->load(),
              raw[5]->load(), raw[6]->load(), raw[7]->load(), raw[8]->load(),
              raw[9]->load(), raw[10]->load(), raw[11]->load(), raw[12]->load(),
-             raw[13]->load(), raw[14]->load(), raw[15]->load() };
+             raw[13]->load(), raw[14]->load(), raw[15]->load(), raw[18]->load() };
 }
 
 void PluginProcessor::prepareToPlay (double sampleRate, int)
@@ -164,11 +165,10 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
 
 void PluginProcessor::migrate (juce::XmlElement& xml, int fromVersion)
 {
-    // Later versions rewrite older states here, one step per version.
-    // v2 (BODY-08..10): the defaults changed, so a project saved earlier keeps the sound it had.
-    if (fromVersion < 2)
+    // Later versions rewrite older states here, one step per version; a state without knobs takes the defaults.
+    const auto addMissing = [&] (std::initializer_list<const char*> ids) {
         if (auto* params = xml.getChildByName (apvts.state.getType()))
-            for (const auto* id : { "body_sweep2_amount", "body_start", "body_drive" })
+            for (const auto* id : ids)
             {
                 bool found = false;
                 for (auto* child : params->getChildIterator())
@@ -180,6 +180,13 @@ void PluginProcessor::migrate (juce::XmlElement& xml, int fromVersion)
                     param->setAttribute ("value", 0.0);
                 }
             }
+    };
+    // v2 (BODY-08..10): the defaults changed, so a project saved earlier keeps the sound it had.
+    if (fromVersion < 2)
+        addMissing ({ "body_sweep2_amount", "body_start", "body_drive" });
+    // v3 (BODY-07): the same for the tail anchor, which is on by default.
+    if (fromVersion < 3)
+        addMissing ({ "body_tail_anchor" });
 }
 
 juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()

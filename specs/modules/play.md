@@ -71,8 +71,11 @@ retrigger adds, not on that hit. 200 BPM is a note every 300 ms, and its sixteen
 - **PLAY-03a** The old kick stops without a click. With Wave sine, Tune C3, sweeps 0, Start 0, Attack 5 ms, Hold 500 ms
   and Drive 0, so that the new note adds no step of its own, a second note lands at 16 points across one period of the
   old tone: the largest step around it stays below 0.05, the limit of ENG-01c, at 44.1, 48, 96 and 192 kHz.
-- **PLAY-03b** At the defaults, and at Start 0 with Amp Decay 2000 ms, a retrigger's largest step stays within 0.05 of
-  the same note's largest step from silence, in a run of notes at 200 BPM and one of its sixteenths.
+- **PLAY-03b** A second note, 50 to 310 ms after the first, keeps the largest step below 1.15 at the defaults and below
+  0.75 at Start 0 with Amp Decay 2000 ms. Without the fade they reach 1.17 and 1.05. The defaults' limit lies above a hit from
+  silence (0.73), because Drive clips the old kick's negative swing just before the new hit: with the anchor on or off, 13
+  of 104 gaps exceed that. The first wording, within 0.05 of a hit from silence at 75 and 300 ms only, held by chance
+  (changed in VS1-04, confirmed by the owner, 2026-11-04).
 - **PLAY-03c** The filter does not click. On the values of PLAY-03a, with Cutoff 200 Hz, Env Amount 5 octaves, Hold 0,
   Amp Decay 2000 ms and Amp Shape -100, a second note at 1.6 s, where the envelope has fallen to 0.2 and the cutoff lags
   the tone, keeps the largest step below 0.05. A sine, because a saw has large steps by nature once the filter opens.

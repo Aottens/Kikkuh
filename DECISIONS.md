@@ -8,7 +8,7 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 **Decision:** the panel the owner approved in a clickable prototype after research (`docs/research/panel-design.md`). A flat
 aluminium plate with ink print, and a printed line in the real order of the signal, so PITCH comes before OSC. Yellow means only that a
-kick sounds. Three knob sizes, 1154 x 318 points, 80 to 200 %. The grafiet variant of the prototype is not built. After the owner's first run everything stands on one grid: the prototype's knobs were not aligned, which the owner rejected.
+kick sounds. Two knob sizes, 1144 x 318 points, 80 to 200 %. The grafiet variant of the prototype is not built. After the owner's runs everything stands on one grid with two knob sizes, centred titles and light section lines: the first prototype's knobs were not aligned, which the owner rejected.
 
 **Alternatives considered:** one long row of equal knobs at 1240 x 300; OSC first, as most synths have it; a dark panel with an accent colour.
 

@@ -225,10 +225,10 @@ TEST_CASE ("fast_05b_one_screen_in_signal_order_at_every_size")
     });
 
     const auto width = panel.editor->getWidth();
-    REQUIRE (width == 1154);
+    REQUIRE (width == 1144);
     for (const auto scale : { 1.0, 0.8, 2.0 })
     {
-        panel.editor->setSize (juce::roundToInt (1154 * scale), juce::roundToInt (318 * scale));
+        panel.editor->setSize (juce::roundToInt (1144 * scale), juce::roundToInt (318 * scale));
         INFO (scale);
         checkLayout (*panel.editor);
 
@@ -260,19 +260,19 @@ TEST_CASE ("fast_05b_one_screen_in_signal_order_at_every_size")
 TEST_CASE ("fast_05c_resizable_at_a_fixed_ratio_and_the_size_comes_back")
 {
     Panel panel;
-    CHECK (panel.editor->getWidth() == 1154);
+    CHECK (panel.editor->getWidth() == 1144);
     CHECK (panel.editor->getHeight() == 318);
     CHECK (panel.editor->isResizable());
     auto* limits = panel.editor->getConstrainer();
     REQUIRE (limits != nullptr);
-    CHECK (limits->getFixedAspectRatio() == Catch::Approx (1154.0 / 318.0).margin (0.001));
-    CHECK (limits->getMinimumWidth() == Catch::Approx (1154 * 0.8).margin (1.0));
-    CHECK (limits->getMaximumWidth() == 2308);
+    CHECK (limits->getFixedAspectRatio() == Catch::Approx (1144.0 / 318.0).margin (0.001));
+    CHECK (limits->getMinimumWidth() == Catch::Approx (1144 * 0.8).margin (1.0));
+    CHECK (limits->getMaximumWidth() == 2288);
 
-    panel.editor->setSize (1442, 397);
+    panel.editor->setSize (1430, 398);
     panel.editor = nullptr;
     panel.editor.reset (panel.plugin.createEditor());
-    CHECK (panel.editor->getWidth() == 1442);
+    CHECK (panel.editor->getWidth() == 1430);
 }
 
 TEST_CASE ("fast_05d_a_knob_moves_as_a_pro_expects")
@@ -497,8 +497,9 @@ TEST_CASE ("fast_05l_one_grid")
     }
     SECTION ("switches and the readout stand on the bottom row")
     {
+        // Centred on a bottom knob's disc and label together: the disc's top is 19 above its line, the label ends where the value starts.
         for (const auto* id : { "play_key_track", "body_tail_anchor" })
-            CHECK (area (id).getCentreY() == discY (bottom.front()));
+            CHECK (area (id).getCentreY() == (discY (bottom.front()) - 19 + valueY (bottom.front())) / 2);
         CHECK (area ("tail_readout").getY() == area (bottom.front()).getY());
         CHECK (area ("tail_readout").getBottom() == area (bottom.front()).getBottom());
     }
@@ -515,7 +516,28 @@ TEST_CASE ("fast_05l_one_grid")
             CHECK (area (below).getCentreX() == area (above).getCentreX());
         }
     }
-    SECTION ("columns in a section are 88 points apart")
+    SECTION ("a row has one disc size and all values one style")
+    {
+        const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
+        const auto ink = juce::Colour (panel::ink), plate = juce::Colour (panel::plate);
+        const auto checkDisc = [&] (const juce::String& id, int radius) {
+            // Straight below the centre: the gap in a knob's sweep, so no pointer and no tick.
+            INFO (id);
+            const auto x = area (id).getCentreX(), y = discY (id);
+            CHECK (image.getPixelAt (x, y + radius - 2) == ink);
+            CHECK (image.getPixelAt (x, y + radius + 2) == plate);
+        };
+        for (const auto& id : top)
+            checkDisc (id, 34);
+        for (const auto& id : bottom)
+            checkDisc (id, 19);
+        for (const auto& row : { top, bottom })
+            for (const auto& id : row)
+                for (auto* child : knob (panel, id).getChildren())
+                    if (auto* value = dynamic_cast<juce::Label*> (child))
+                        CHECK (value->getFont().getHeight() == Catch::Approx (13.0f).margin (0.01f));
+    }
+    SECTION ("columns in a section are 84 points apart")
     {
         const std::pair<const char*, const char*> neighbours[] = {
             { "body_pitch_amount", "body_pitch_decay" }, { "body_pitch_decay", "body_pitch_shape" }, { "body_tune", "body_wave" },
@@ -524,7 +546,7 @@ TEST_CASE ("fast_05l_one_grid")
         for (const auto& [left, right] : neighbours)
         {
             INFO (left);
-            CHECK (area (right).getCentreX() - area (left).getCentreX() == 88);
+            CHECK (area (right).getCentreX() - area (left).getCentreX() == 84);
         }
     }
     SECTION ("the pad and the Loop switch line up with the row below")
@@ -540,26 +562,30 @@ TEST_CASE ("fast_05m_printed_lines_set_the_sections_apart")
 {
     Panel panel;
     const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
-    const auto print = juce::Colour (panel::print);
+    const auto plate = juce::Colour (panel::plate);
     REQUIRE (std::size (panel::sectionLines) == sections.size() - 1);
 
     size_t gap = 0;
     for (const auto x : panel::sectionLines)
     {
         INFO (x);
-        // It runs from just below the signal line to the bottom row's value line, 1 point wide.
-        for (const auto y : { 45, 100, 200, 300 })
-            CHECK (image.getPixelAt (x, y) == print);
-        CHECK (image.getPixelAt (x - 1, 100) == juce::Colour (panel::plate));
-        CHECK (image.getPixelAt (x + 1, 100) == juce::Colour (panel::plate));
-        CHECK (image.getPixelAt (x, 310) == juce::Colour (panel::plate));
+        // It runs from below the signal line to the bottom row's value line, in two flat tones and no black.
+        for (const auto y : { 60, 100, 200, 300 })
+        {
+            CHECK (image.getPixelAt (x, y) == juce::Colour (panel::lineDark));
+            CHECK (image.getPixelAt (x + 1, y) == juce::Colour (panel::lineLight));
+            CHECK (image.getPixelAt (x - 1, y) == plate);
+            CHECK (image.getPixelAt (x + 2, y) == plate);
+        }
+        CHECK (image.getPixelAt (x, 48) == plate);
+        CHECK (image.getPixelAt (x, 310) == plate);
 
         // It lies between its two sections and through no control.
         for (const auto& section : sections)
             for (const auto& id : section)
             {
                 const auto bounds = findById (*panel.editor, id)->getBounds();
-                CHECK (! (bounds.getX() <= x && x < bounds.getRight()));
+                CHECK (! (bounds.getX() <= x + 1 && x < bounds.getRight()));
             }
         for (const auto& id : sections[gap])
             CHECK (findById (*panel.editor, id)->getBounds().getCentreX() < x);

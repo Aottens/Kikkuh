@@ -10,26 +10,28 @@ How it feels is for the owner's run. Sizes are in panel points at 100 %. The rea
 
 ## The panel
 
-A printed instrument front of 1154 x 318 points. A printed line runs from the name "Kikkuh" to the output, in the real
+A printed instrument front of 1144 x 318 points. A printed line runs from the name "Kikkuh" to the output, in the real
 order of the signal: the sweep drives the oscillator, so PITCH comes before OSC. Controls that belong together sit closer.
 
 | Section | Controls (id), with knob size |
 | --- | --- |
 | under the name | hit pad, Loop switch, Velocity S (`play_velocity`), Key Track (`play_key_track`) |
-| PITCH | Amount L (`body_pitch_amount`), Decay L (`body_pitch_decay`), Shape M (`body_pitch_shape`), under SWEEP 2: Amount S (`body_sweep2_amount`), Decay S (`body_sweep2_decay`); Tail Anchor (`body_tail_anchor`) |
-| OSC | Tune L (`body_tune`), Wave M (`body_wave`), Start S (`body_start`), tail readout |
-| AMP | Decay L (`body_amp_decay`), Shape M (`body_amp_shape`), Attack S (`body_amp_attack`), Hold S (`body_amp_hold`) |
+| PITCH | Amount L (`body_pitch_amount`), Decay L (`body_pitch_decay`), Shape L (`body_pitch_shape`), under SWEEP 2: Amount S (`body_sweep2_amount`), Decay S (`body_sweep2_decay`); Tail Anchor (`body_tail_anchor`) |
+| OSC | Tune L (`body_tune`), Wave L (`body_wave`), Start S (`body_start`), tail readout |
+| AMP | Decay L (`body_amp_decay`), Shape L (`body_amp_shape`), Attack S (`body_amp_attack`), Hold S (`body_amp_hold`) |
 | DRIVE | Drive L (`body_drive`) |
-| FILTER | Cutoff L (`body_filter_cutoff`), Resonance M (`body_filter_res`), Env S (`body_filter_env`) |
+| FILTER | Cutoff L (`body_filter_cutoff`), Resonance L (`body_filter_res`), Env S (`body_filter_env`) |
 
-**One grid.** Two rows: L and M knobs on top, S knobs and switches below. Each row has one line for the discs' centres, one for
-labels and one for values. A column is 88 points wide, and a bottom control stands under the top knob of its column, in the
-table's order: Sweep 2 Amount under Pitch Amount, Sweep 2 Decay under Pitch Decay, Tail Anchor under Pitch Shape, Start under Tune, the tail
-readout under Wave, Attack under Amp Decay, Hold under Amp Shape, Env under Cutoff. The tail readout is laid out as a knob: the note on the
-disc line, its caption on the label line, the cents on the value line. (Changed after the first run, owner, 2026-11-05.)
+**One grid.** Two rows: L knobs on top, S knobs and switches below. Each row has one line for the discs' centres, one for labels
+and one for values, so a label stands equally far under every disc in its row. A column is 84 points wide, and a bottom control stands under the top
+knob of its column, in the table's order: Sweep 2 Amount under Pitch Amount, Sweep 2 Decay under Pitch Decay, Tail Anchor under Pitch Shape, Start under
+Tune, the tail readout under Wave, Attack under Amp Decay, Hold under Amp Shape, Env under Cutoff. Key Track, Tail Anchor and the tail readout's note with its
+caption are centred on the bottom row's disc and label together; the readout's cents stand on the value line. (Changed after the owner's runs, 2026-11-05.)
 
-Knobs are 68, 52 and 38 points across (L, M, S). A knob is a flat disc with a pointer, printed ticks around it and one
-heavier tick at the parameter's default. There are no gradients, shadows or glows.
+**The signal line** is one line from the first section line to one arrow at the end. Each section's title stands on it, centred on its section.
+
+Knobs are 68 and 38 points across (L, S). A knob is a flat disc with a pointer, printed ticks around it and one heavier tick at the parameter's default. There
+are no gradients, shadows or glows. All values have one style.
 
 **Colour has one job.** The plate is aluminium (`#c8cbc6`), print is ink (`#141513`, secondary `#383b37`). Yellow
 (`#f7c600`) means one thing: a kick sounds. It lights the pad on every hit, and the lamp in the Loop switch on every loop
@@ -71,11 +73,11 @@ empty places for them.
   other knobs a number with or without its unit and with "k" for thousands ("1k", "40 ms", "1.20 kHz"). The text a knob
   shows, typed back unchanged, leaves it on the same value within the shown precision. A value is shown with its unit,
   and Cutoff from 1000 Hz up in kHz.
-- **FAST-05l** The grid holds: within a row, discs share their centre line, labels and values their line, and switches are centred on the
-  disc line. A bottom control's centre lies on its column. Columns within a section are 88 points apart. The pad and the Loop switch share
-  their left and right edges with the row below them, and the Loop switch ends on the top row's value line.
-- **FAST-05m** A printed line, 1 point wide in the secondary print colour, sets each section apart: it drops from the signal line to the bottom row's
-  value line, between two sections, through no control. (Owner, 2026-11-05.)
+- **FAST-05l** The grid holds: within a row, discs have one size and share their centre line, labels and values their line, and all values one font size. Switches are
+  centred on the bottom row's disc and label together. A bottom control's centre lies on its column. Columns within a section are 84 points apart. The pad and the Loop
+  switch share their left and right edges, the Loop and Key Track switches their right edge, and the Loop switch ends on the top row's value line.
+- **FAST-05m** A printed line sets each section apart: two flat 1-point lines side by side, a tone darker and a tone lighter than the plate, never black. It runs from
+  below the signal line to the bottom row's value line, between two sections, through no control. (Owner, 2026-11-05.)
 - **FAST-05k** Legibility: the secondary print on the plate has a contrast of at least 4.5:1, the WCAG floor for text.
   Labels and values are 13 points at 100 %, and no text on a label is below 11.
 

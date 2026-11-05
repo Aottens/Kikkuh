@@ -4,7 +4,7 @@
 
 namespace
 {
-constexpr int stageWidth = 1154, stageHeight = 318;
+constexpr int stageWidth = 1144, stageHeight = 318;
 
 juce::Colour colour (std::uint32_t argb) { return juce::Colour (argb); }
 
@@ -113,11 +113,12 @@ public:
         const auto at = [this] (int y, int height) { return juce::Rectangle<int> (0, y, getWidth(), height); };
         g.setColour (colour (panel::ink));
         g.setFont (look.font (PanelLookAndFeel::Cut::title, 25.0f));
-        g.drawText (getText().upToFirstOccurrenceOf (" ", false, false), at (11, 30), juce::Justification::centred);
+        g.drawText (getText().upToFirstOccurrenceOf (" ", false, false), at (15, 30), juce::Justification::centred);
         g.setFont (look.font (PanelLookAndFeel::Cut::label, 13.0f));
-        g.drawText ("Tail lands on", at (52, 16), juce::Justification::centred);
+        g.drawText ("Tail lands on", at (47, 16), juce::Justification::centred);
+        g.setColour (colour (panel::print));
         g.setFont (look.font (PanelLookAndFeel::Cut::value, 13.0f));
-        g.drawText (getText().fromFirstOccurrenceOf (" ", false, false), at (68, 17), juce::Justification::centred);
+        g.drawText (getText().fromFirstOccurrenceOf (" ", false, false), at (70, 17), juce::Justification::centred);
     }
 };
 
@@ -132,22 +133,22 @@ struct KnobSpec
 using S = Knob::Size;
 constexpr KnobSpec knobSpecs[] = {
     { "play_velocity", "Velocity", 41, 216, S::little },
-    { "body_pitch_amount", "Amount", 250, 70, S::large },
-    { "body_pitch_decay", "Decay", 338, 70, S::large },
-    { "body_pitch_shape", "Shape", 426, 70, S::medium },
-    { "body_sweep2_amount", "Amount", 250, 216, S::little },
-    { "body_sweep2_decay", "Decay", 338, 216, S::little },
-    { "body_tune", "Tune", 530, 70, S::large },
-    { "body_wave", "Wave", 618, 70, S::wave },
-    { "body_start", "Start", 530, 216, S::little },
-    { "body_amp_attack", "Attack", 722, 216, S::little },
-    { "body_amp_hold", "Hold", 810, 216, S::little },
-    { "body_amp_decay", "Decay", 722, 70, S::large },
-    { "body_amp_shape", "Shape", 810, 70, S::medium },
-    { "body_drive", "Drive", 914, 70, S::large },
-    { "body_filter_cutoff", "Cutoff", 1018, 70, S::large },
-    { "body_filter_res", "Resonance", 1106, 70, S::medium },
-    { "body_filter_env", "Env", 1018, 216, S::little },
+    { "body_pitch_amount", "Amount", 252, 70, S::large },
+    { "body_pitch_decay", "Decay", 336, 70, S::large },
+    { "body_pitch_shape", "Shape", 420, 70, S::large },
+    { "body_sweep2_amount", "Amount", 252, 216, S::little },
+    { "body_sweep2_decay", "Decay", 336, 216, S::little },
+    { "body_tune", "Tune", 524, 70, S::large },
+    { "body_wave", "Wave", 608, 70, S::wave },
+    { "body_start", "Start", 524, 216, S::little },
+    { "body_amp_attack", "Attack", 712, 216, S::little },
+    { "body_amp_hold", "Hold", 796, 216, S::little },
+    { "body_amp_decay", "Decay", 712, 70, S::large },
+    { "body_amp_shape", "Shape", 796, 70, S::large },
+    { "body_drive", "Drive", 900, 70, S::large },
+    { "body_filter_cutoff", "Cutoff", 1004, 70, S::large },
+    { "body_filter_res", "Resonance", 1088, 70, S::large },
+    { "body_filter_env", "Env", 1004, 216, S::little },
 };
 } // namespace
 
@@ -176,12 +177,12 @@ public:
         pad.onClick = [&p] { p.pressPad(); };
         loop.setBounds (22, 157, 160, 32);
         loop.onClick = [this, &p] { p.setLoop (loop.getToggleState()); }; // also from setToggleState (FAST-01j)
-        keyTrack.setBounds (104, 226, 78, 32);
-        tailAnchor.setBounds (383, 226, 86, 32);
+        keyTrack.setBounds (104, 239, 78, 32);
+        tailAnchor.setBounds (380, 239, 80, 32);
         keyTrack.attachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "play_key_track", keyTrack);
         tailAnchor.attachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, "body_tail_anchor", tailAnchor);
 
-        tail.setBounds (574, 216, 88, 85);
+        tail.setBounds (564, 216, 88, 87);
         tail.setText (p.getTailReadout(), juce::dontSendNotification);
         for (auto* c : std::initializer_list<juce::Component*> { &pad, &loop, &keyTrack, &tailAnchor, &tail })
             addAndMakeVisible (c);
@@ -210,56 +211,57 @@ public:
         const auto& lf = lookOf (*this);
         g.fillAll (colour (panel::plate));
         g.setColour (colour (panel::ink));
-        g.setFont (lf.font (PanelLookAndFeel::Cut::name, 40.0f, -0.012f));
-        g.drawText ("Kikkuh", 22, 14, 300, 40, juce::Justification::topLeft);
+        g.setFont (lf.font (PanelLookAndFeel::Cut::name, 36.0f, -0.012f));
+        g.drawText ("Kikkuh", 22, 19, 300, 40, juce::Justification::topLeft);
         g.setColour (colour (panel::print));
         g.setFont (lf.font (PanelLookAndFeel::Cut::value, 12.0f));
-        g.drawText ("by Colourmotion", 23, 58, 200, 16, juce::Justification::topLeft);
+        g.drawText ("by Colourmotion", 23, 59, 200, 16, juce::Justification::topLeft);
 
-        g.setColour (colour (panel::print));
-        for (const int x : panel::sectionLines)
-            g.fillRect (x, 37, 1, 264); // FAST-05m
+        for (const int x : panel::sectionLines) // FAST-05m
+        {
+            g.setColour (colour (panel::lineDark));
+            g.fillRect (x, 52, 1, 251);
+            g.setColour (colour (panel::lineLight));
+            g.fillRect (x + 1, 52, 1, 251);
+        }
         drawFlow (g, lf);
         drawSweep (g, lf);
     }
 
 private:
-    // The printed signal line, in the real order of the signal: arrowheads end each stage, titles break the line.
+    // The printed signal line, in the real order of the signal: one arrow at the end, titles break the line.
     void drawFlow (juce::Graphics& g, const PanelLookAndFeel& lf)
     {
         g.setColour (colour (panel::ink));
-        g.fillRect (190.0f, 37.0f - 1.25f, 942.0f, 2.5f);
-        for (const int x : { 210, 490, 682, 874, 978, 1132 })
-        {
-            juce::Path arrow;
-            arrow.addTriangle ((float) x - 9.0f, 31.0f, (float) x, 37.0f, (float) x - 9.0f, 43.0f);
-            g.fillPath (arrow);
-        }
+        g.fillRect (200.0f, 37.0f - 1.25f, 913.0f, 2.5f);
+        juce::Path arrow;
+        arrow.addTriangle (1113.0f, 31.0f, 1122.0f, 37.0f, 1113.0f, 43.0f);
+        g.fillPath (arrow);
 
         const auto font = lf.font (PanelLookAndFeel::Cut::title, 15.0f, 0.07f);
-        const std::pair<const char*, int> titles[] = { { "PITCH", 210 }, { "OSC", 490 }, { "AMP", 682 }, { "DRIVE", 874 }, { "FILTER", 978 } };
+        const std::pair<const char*, int> titles[] = { { "PITCH", 336 }, { "OSC", 566 }, { "AMP", 754 }, { "DRIVE", 900 }, { "FILTER", 1046 } };
         for (const auto& [text, x] : titles)
         {
             const auto width = juce::roundToInt (PanelLookAndFeel::widthOf (font, text));
             g.setColour (colour (panel::plate));
-            g.fillRect (x, 26, width + 14, 22);
+            g.fillRect (x - width / 2 - 10, 26, width + 20, 22);
             g.setColour (colour (panel::ink));
             g.setFont (font);
-            g.drawText (text, x + 6, 26, width + 4, 22, juce::Justification::centredLeft);
+            g.drawText (text, x - width / 2 - 2, 26, width + 4, 22, juce::Justification::centred);
         }
     }
 
     void drawSweep (juce::Graphics& g, const PanelLookAndFeel& lf)
     {
         g.setColour (colour (panel::print));
-        g.fillRect (216.0f, 208.0f, 156.0f, 1.5f);
+        g.fillRect (218.0f, 208.0f, 152.0f, 1.5f);
         const auto font = lf.font (PanelLookAndFeel::Cut::title, 12.0f, 0.06f);
         const auto width = juce::roundToInt (PanelLookAndFeel::widthOf (font, "SWEEP 2"));
         g.setColour (colour (panel::plate));
-        g.fillRect (224, 200, width + 10, 15);
+        g.fillRect (218, 200, width + 5, 15);
         g.setColour (colour (panel::print));
         g.setFont (font);
-        g.drawText ("SWEEP 2", 229, 200, width + 4, 15, juce::Justification::centredLeft);
+        g.drawText ("SWEEP 2", 218, 200, width + 4, 15, juce::Justification::centredLeft);
     }
 
     std::vector<std::unique_ptr<Knob>> knobs;

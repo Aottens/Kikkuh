@@ -6,15 +6,15 @@
 class Knob : public juce::Slider
 {
 public:
-    // The disc is 68, 52 or 38 points across; the Wave knob has room around it for its printed positions.
-    // A top-row knob (all but little) has a rotary area 86 tall, a bottom-row one 52, so a row shares one disc line.
-    enum class Size { little, medium, large, wave };
+    // The disc is 68 or 38 points across; the Wave knob has room around it for its printed positions.
+    // A top-row knob (all but little) has a rotary area 86 tall, a bottom-row one 54, so a row shares one disc line.
+    enum class Size { little, large, wave };
 
     Knob (juce::AudioProcessorValueTreeState& state, const juce::String& id, const juce::String& label, Size size);
 
     int diameter() const;
-    int box() const { return size == Size::little ? 52 : 86; }
-    int width() const { return size == Size::wave ? 90 : size == Size::large ? 86 : size == Size::medium ? 78 : 70; }
+    int box() const { return size == Size::little ? 54 : 86; }
+    int width() const { return size == Size::wave ? 86 : size == Size::large ? 82 : 70; }
     int height() const { return box() + 16 + 17; }
 
     const juce::String label;

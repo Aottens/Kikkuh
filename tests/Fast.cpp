@@ -535,7 +535,7 @@ TEST_CASE ("fast_05l_one_grid")
             for (const auto& id : row)
                 for (auto* child : knob (panel, id).getChildren())
                     if (auto* value = dynamic_cast<juce::Label*> (child))
-                        CHECK (value->getFont().getHeight() == Catch::Approx (13.0f).margin (0.01f));
+                        CHECK (value->getFont().getHeightInPoints() == Catch::Approx (13.0f).margin (0.01f));
     }
     SECTION ("columns in a section are 84 points apart")
     {

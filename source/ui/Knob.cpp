@@ -15,8 +15,6 @@ Knob::Knob (juce::AudioProcessorValueTreeState& state, const juce::String& id, c
     setSliderStyle (RotaryHorizontalVerticalDrag);
     setRotaryParameters (juce::MathConstants<float>::pi * 1.25f, juce::MathConstants<float>::pi * 2.75f, true);
     setTextBoxStyle (TextBoxBelow, false, width(), 17);
-    if (size == Size::large)
-        setColour (textBoxTextColourId, juce::Colour (panel::ink));
 
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, id, *this);
     defaultProportion = parameter.getDefaultValue();
@@ -30,7 +28,7 @@ Knob::Knob (juce::AudioProcessorValueTreeState& state, const juce::String& id, c
 
 int Knob::diameter() const
 {
-    return size == Size::large ? 68 : size == Size::little ? 38 : 52;
+    return size == Size::little ? 38 : 68;
 }
 
 // A value with its unit (FAST-05j); Cutoff from 1000 Hz up in kHz, Wave by name on a whole position.

@@ -72,8 +72,10 @@ void PanelLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int wi
         for (int i = 0; i < 4; ++i)
         {
             const auto angle = angleAt (i / 3.0);
-            const auto at = juce::Point<float> (centre.x + std::sin (angle) * (radius + 16.0f), centre.y - std::cos (angle) * (radius + 13.0f));
-            g.drawText (names[i], juce::Rectangle<float> (30.0f, 14.0f).withCentre (at), juce::Justification::centred);
+            const auto at = onCircle (centre, angle, radius + 15.0f);
+            // Kept inside the knob's area, so a name at the side is not clipped.
+            const auto area = juce::Rectangle<float> (24.0f, 14.0f).withCentre (at).constrainedWithin (juce::Rectangle<int> (x, y, width, height).toFloat());
+            g.drawText (names[i], area, juce::Justification::centred);
         }
     }
 
@@ -92,8 +94,7 @@ juce::Slider::SliderLayout PanelLookAndFeel::getSliderLayout (juce::Slider& slid
 juce::Label* PanelLookAndFeel::createSliderTextBox (juce::Slider& slider)
 {
     auto* label = LookAndFeel_V4::createSliderTextBox (slider);
-    const auto large = dynamic_cast<Knob&> (slider).size == Knob::Size::large;
-    label->setFont (large ? font (Cut::label, 15.0f) : font (Cut::value, 13.0f));
+    label->setFont (font (Cut::value, 13.0f));
     label->setBorderSize ({ 0, 2, 0, 2 });
     label->setColour (juce::Label::backgroundWhenEditingColourId, juce::Colour (panel::ink));
     label->setColour (juce::Label::textWhenEditingColourId, juce::Colour (panel::plate));

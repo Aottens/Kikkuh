@@ -37,6 +37,14 @@ public:
     double getTailNote() const { return dsp::bodyTailNote (readParams()); }
     juce::String getTailReadout() const { return dsp::bodyNoteReadout (getTailNote()); }
 
+    // FAST-01: the audition. Message thread; the audio thread reads atomics.
+    void pressPad() {}
+    void setLoop (bool) {}
+    bool isLoopOn() const { return false; }
+    // FAST-01n: go up on every kick and every loop hit, so the panel can light.
+    int getKickCount() const { return 0; }
+    int getLoopHitCount() const { return 0; }
+
 private:
     static constexpr int stateVersion = 3;
 

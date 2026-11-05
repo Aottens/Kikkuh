@@ -50,6 +50,21 @@ inline float largestDifference (const std::vector<float>& a, size_t fromA, const
 }
 
 // Frequency between two times, from interpolated rising zero crossings. For a tail, not a sweep.
+// The sample of each hit: where the level rises above `threshold` after at least `gap` samples below it.
+inline std::vector<int> hits (const std::vector<float>& x, float threshold, int gap)
+{
+    std::vector<int> found;
+    int last = -gap;
+    for (int i = 0; i < static_cast<int> (x.size()); ++i)
+        if (std::abs (x[static_cast<size_t> (i)]) > threshold)
+        {
+            if (i - last >= gap)
+                found.push_back (i);
+            last = i;
+        }
+    return found;
+}
+
 inline double frequency (const std::vector<float>& x, double sampleRate, double fromSeconds, double toSeconds)
 {
     const auto from = static_cast<size_t> (fromSeconds * sampleRate);

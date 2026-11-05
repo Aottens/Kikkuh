@@ -1,6 +1,6 @@
 # Module spec: layer (LAYER), the CLICK and TOP sections
 
-Status: **proposal, waiting for the owner (gate 1).** Scope: LAYER-01..03 and the panel row, built by VS2-01 and VS2-04;
+Status: **approved by the owner (2026-11-05), with every recommendation: Tone and Noise only, Start with VS2-02, 12 dB filters, mono.** Scope: LAYER-01..03 and the panel row, built by VS2-01 and VS2-04;
 LAYER-04 and the Sample source come with VS2-02 and get their full criteria when it starts.
 
 CLICK and TOP are two identical sections, one class in `source/dsp/` used twice, that play in parallel over the body.
@@ -20,15 +20,16 @@ section (VS3-01): a layer adds to a default kick that already peaks at +1.17 dBF
 
 ## Signal flow
 
-Each section plays its source from the note-on, shapes it with its Decay envelope, filters it with High-pass and
-Low-pass and scales it by Level and the note's level (PLAY-01's formula, the same as BODY's). The two sections are added to
+Each section plays its source from the note-on, filters it with High-pass and Low-pass, shapes it with its Decay
+envelope and scales it by Level and the note's level (PLAY-01's formula, the same as BODY's). The two sections are added to
 BODY after BODY's drive and filter, so they are never clipped by BODY's Drive, and the sum goes to the output (and to
-MASTER when it exists). Mono, as BODY is.
+MASTER when it exists). Mono, as BODY is. The filters come before the envelope, so a section is exactly silent once
+Decay has passed; source and filters start afresh at every note-on, so every hit is the same (ENG-03).
 
 ```
 note ─► BODY (osc, amp, drive, filter) ──┐
-     ─► CLICK (source, decay, HP, LP, level) ─┼─► sum ─► out
-     ─► TOP   (source, decay, HP, LP, level) ─┘
+     ─► CLICK (source, HP, LP, decay, level) ─┼─► sum ─► out
+     ─► TOP   (source, HP, LP, decay, level) ─┘
 ```
 
 ## Sources (LAYER-01)
@@ -92,8 +93,8 @@ After Decay the section is silent. A Sample also stops at its own end.
 - **LAYER-02e** Tune is the pitch of the source (LAYER-01a, c). It does not follow Key Track or the note: layers are the
   same on every note.
 - **LAYER-02f** The VS1-09 tone click is a setting: CLICK on Tone, Tune 0, Decay 4 ms, Level -6 dB, filters open, follows
-  the sketch's `0.5 * sin (2 pi 3000 t) * (1 - t / 4 ms)^2` within 0.01 per sample after the filters' effect, and within
-  0.5 dB in peak.
+  the sketch's `0.5 * sin (2 pi 3000 t) * (1 - t / 4 ms)^2` within 0.05 per sample (the open filters shift its phase a
+  little) and within 0.5 dB in peak.
 - **LAYER-02g** The layers can reach Beefy's first 5 ms (proposed): on BODY at Beefy's fit in VS1-08, there is a setting of
   CLICK and TOP within their ranges that puts at least 60 % of the energy in 0-5 ms above 1 kHz and keeps it below 5 %
   in 5-20 ms. The test holds that setting and writes it into this spec; if no setting reaches it, VS2-01 reports the

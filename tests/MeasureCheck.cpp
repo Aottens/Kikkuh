@@ -195,6 +195,14 @@ TEST_CASE ("harn_05d_band_shares_place_known_tones")
 
     const auto shares = measure::bandShares (burst (2000.0, 0.0, 0.005), checkRate, 0.0, 0.005);
     CHECK (shares[0] + shares[1] + shares[2] + shares[3] == Catch::Approx (100.0).margin (0.01));
+
+    // A cap leaves out what lies above it: an 8 kHz burst under a 6 kHz cap leaves the 2 kHz one alone.
+    auto both = burst (2000.0, 0.0, 0.02);
+    const auto high = burst (8000.0, 0.0, 0.02);
+    for (size_t i = 0; i < both.size(); ++i)
+        both[i] += high[i];
+    CHECK (measure::bandShares (both, checkRate, 0.0, 0.02)[2] == Catch::Approx (50.0).margin (2.0));
+    CHECK (measure::bandShares (both, checkRate, 0.0, 0.02, 6000.0)[2] > 99.0);
 }
 
 TEST_CASE ("harn_05e_time_below_a_level_for_good")

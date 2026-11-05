@@ -4,7 +4,7 @@
 
 namespace
 {
-constexpr int stageWidth = 1144, stageHeight = 318;
+constexpr int stageWidth = 1144, stageHeight = 598, bandOffset = 280; // the second band (CLICK, TOP) is the first one's geometry again, 280 lower
 
 juce::Colour colour (std::uint32_t argb) { return juce::Colour (argb); }
 
@@ -51,12 +51,12 @@ public:
     }
 };
 
-// A switch: ink-edged, filled with ink when on. Loop 1/4 has a lamp that lights on loop hits only.
+// A switch: ink-edged, filled with ink when on (a choice switch, like Source, is never filled). Loop 1/4 has a lamp that lights on loop hits only.
 class Switch : public juce::ToggleButton
 {
 public:
-    Switch (const juce::String& text, const juce::String& id, const juce::String& title, bool withLamp = false)
-        : ToggleButton (text), lamp (withLamp)
+    Switch (const juce::String& text, const juce::String& id, const juce::String& title, bool withLamp = false, bool fillsWhenOn = true)
+        : ToggleButton (text), lamp (withLamp), fills (fillsWhenOn)
     {
         setComponentID (id);
         setTitle (title);
@@ -64,12 +64,13 @@ public:
 
     Flash flash;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> attachment;
+    juce::AudioParameterChoice* choice = nullptr; // Source: the text is the choice's name
 
     juce::Rectangle<int> lampBounds() const { return juce::Rectangle<int> (15, 9).withCentre ({ getWidth() - 8 - 8, getHeight() / 2 }); }
 
     void paintButton (juce::Graphics& g, bool, bool) override
     {
-        const auto on = getToggleState();
+        const auto on = getToggleState() && fills;
         const auto& look = lookOf (*this);
         g.setColour (colour (panel::ink));
         if (on)
@@ -93,7 +94,7 @@ public:
     }
 
 private:
-    bool lamp;
+    bool lamp, fills;
 };
 
 // Laid out as a knob: the note on the disc line, its caption on the label line, the cents on the value line.
@@ -159,6 +160,8 @@ public:
         : loop ("Loop", "audition_loop", "Loop", true),
           keyTrack ("Key Track", "play_key_track", "Key Track"),
           tailAnchor ("Tail Anchor", "body_tail_anchor", "Tail Anchor"),
+          clickSource ("Tone", "click_source", "Click Source", false, false),
+          topSource ("Noise", "top_source", "Top Source", false, false),
           lastKicks (p.getKickCount()), lastLoopHits (p.getLoopHitCount())
     {
         setLookAndFeel (&lf); // before the children, which build their text boxes from it
@@ -171,6 +174,25 @@ public:
             auto& knob = *knobs.emplace_back (std::make_unique<Knob> (state, spec.id, spec.label, spec.size));
             addAndMakeVisible (knob);
             knob.setBounds (spec.centreX - knob.width() / 2, spec.top, knob.width(), knob.height());
+        }
+
+        for (const auto& [prefix, x0] : { std::pair { "click", 252 }, std::pair { "top", 608 } })
+        {
+            const juce::String id (prefix);
+            const std::tuple<const char*, const char*, int, int, Knob::Size> layer[] = {
+                { "_level", "Level", 0, 70, S::large }, { "_decay", "Decay", 1, 70, S::large }, { "_hp", "High-pass", 2, 70, S::large },
+                { "_lp", "Low-pass", 3, 70, S::large }, { "_tune", "Tune", 1, 216, S::little } };
+            for (const auto& [suffix, label, column, top, size] : layer)
+            {
+                auto& knob = *knobs.emplace_back (std::make_unique<Knob> (state, id + suffix, label, size));
+                addAndMakeVisible (knob);
+                knob.setBounds (x0 + column * 84 - knob.width() / 2, top + bandOffset, knob.width(), knob.height());
+            }
+            auto& source = id == "click" ? clickSource : topSource;
+            source.setBounds (x0 - 39, 239 + bandOffset, 78, 32);
+            source.attachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, id + "_source", source);
+            source.choice = dynamic_cast<juce::AudioParameterChoice*> (state.getParameter (id + "_source"));
+            addAndMakeVisible (source);
         }
 
         pad.setBounds (22, 82, 160, 67);
@@ -196,6 +218,9 @@ public:
     {
         if (const auto readout = p.getTailReadout(); readout != tail.getText())
             tail.setText (readout, juce::dontSendNotification);
+        for (auto* s : { &clickSource, &topSource })
+            if (const auto name = s->choice->getCurrentChoiceName(); name != s->getButtonText())
+                s->setButtonText (name);
         if (const auto kicks = p.getKickCount(); kicks != std::exchange (lastKicks, kicks))
             pad.flash.trigger();
         if (const auto hits = p.getLoopHitCount(); hits != std::exchange (lastLoopHits, hits))
@@ -224,30 +249,35 @@ public:
             g.setColour (colour (panel::lineLight));
             g.fillRect (x + 1, 52, 1, 251);
         }
-        drawFlow (g, lf);
+        g.setColour (colour (panel::lineDark)); // between CLICK and TOP, FAST-05m again
+        g.fillRect (556, 52 + bandOffset, 1, 251);
+        g.setColour (colour (panel::lineLight));
+        g.fillRect (557, 52 + bandOffset, 1, 251);
+        drawFlow (g, lf, 0, 913.0f, { { "PITCH", 336 }, { "OSC", 566 }, { "AMP", 754 }, { "DRIVE", 900 }, { "FILTER", 1046 } });
+        drawFlow (g, lf, bandOffset, 697.0f, { { "CLICK", 378 }, { "TOP", 734 } });
         drawSweep (g, lf);
     }
 
 private:
     // The printed signal line, in the real order of the signal: one arrow at the end, titles break the line.
-    void drawFlow (juce::Graphics& g, const PanelLookAndFeel& lf)
+    void drawFlow (juce::Graphics& g, const PanelLookAndFeel& lf, int dy, float length, std::vector<std::pair<const char*, int>> titles)
     {
+        const auto y = 37.0f + static_cast<float> (dy), end = 200.0f + length;
         g.setColour (colour (panel::ink));
-        g.fillRect (200.0f, 37.0f - 1.25f, 913.0f, 2.5f);
+        g.fillRect (200.0f, y - 1.25f, length, 2.5f);
         juce::Path arrow;
-        arrow.addTriangle (1113.0f, 31.0f, 1122.0f, 37.0f, 1113.0f, 43.0f);
+        arrow.addTriangle (end, y - 6.0f, end + 9.0f, y, end, y + 6.0f);
         g.fillPath (arrow);
 
         const auto font = lf.font (PanelLookAndFeel::Cut::title, 15.0f, 0.07f);
-        const std::pair<const char*, int> titles[] = { { "PITCH", 336 }, { "OSC", 566 }, { "AMP", 754 }, { "DRIVE", 900 }, { "FILTER", 1046 } };
         for (const auto& [text, x] : titles)
         {
             const auto width = juce::roundToInt (PanelLookAndFeel::widthOf (font, text));
             g.setColour (colour (panel::plate));
-            g.fillRect (x - width / 2 - 10, 26, width + 20, 22);
+            g.fillRect (x - width / 2 - 10, 26 + dy, width + 20, 22);
             g.setColour (colour (panel::ink));
             g.setFont (font);
-            g.drawText (text, x - width / 2 - 2, 26, width + 4, 22, juce::Justification::centred);
+            g.drawText (text, x - width / 2 - 2, 26 + dy, width + 4, 22, juce::Justification::centred);
         }
     }
 
@@ -266,7 +296,7 @@ private:
 
     std::vector<std::unique_ptr<Knob>> knobs;
     Pad pad;
-    Switch loop, keyTrack, tailAnchor;
+    Switch loop, keyTrack, tailAnchor, clickSource, topSource;
     TailReadout tail;
     int lastKicks, lastLoopHits;
 };

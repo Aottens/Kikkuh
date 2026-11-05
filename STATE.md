@@ -1,6 +1,6 @@
 # Kikkuh — State
 
-_Last updated: 2026-11-05 (VS1-06)_
+_Last updated: 2026-11-05 (VS1-07)_
 
 This file is the handoff: where we are, what is next, what waits. It is not a log.
 
@@ -9,6 +9,7 @@ BODY now plays what the owner chose in VS1-09: a sweep in two stages, a start at
 by default, and it measures as the sketch did. Older projects keep their sound (state version 2). BODY-05's filter type
 is still a proposal.
 The panel is there: one printed plate in signal order, with the tail readout, a hit pad and a loop. The owner approved it in Bitwig "for now"; what is left to polish is IDEA-05.
+CORE-01 on this panel: three of four references usable within 3 minutes. Beefy SM ELE missed on its almost acoustic character, not on the panel, so slice 2 starts and VS2-03 runs CORE-01 again after Click and Top.
 At the defaults a kick peaks at +1.17 dBFS at velocity 127, and nothing limits it until the Master section (VS3-01).
 The kick now plays: Velocity and Key Track are knobs, and a new note cuts off a ringing one without a click (3 ms fade,
 no knob). With Key Track on, a C3 at the defaults peaks at +3.1 dBFS, also unlimited until VS3-01.
@@ -16,7 +17,8 @@ The tail anchor is on by default: pitch knobs leave the tail sample-identical, S
 clap-validator warns that scanning takes 410 ms against its 100 ms guideline; not a failure, watch it.
 
 ## Next
-1. VS1-07, the CORE-01 run on this panel, needs the owner's choice below. It is the re-run CORE-01 asks for after this panel change, and it also shows whether Tune at 30 points a semitone holds.
+1. Slice 2: write the criteria for Click and Top (LAYER-01..04) and the slice's `Builds:` line, for the owner's approval (gate 1), then VS2-01.
+   VS2-03 is the CORE-01 re-run that closes the slice; the Bitwig project `CORE-01` (four tracks and the references) is kept for it.
    Tests that read the bare voice use `BarePlugin` in `tests/Body.cpp`, now with the anchor off: at the defaults the signal
    passes the oversampling filters, which delay and ring.
 
@@ -30,7 +32,5 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 - none
 
 ## Owner decisions open
-- CORE-01 asks for three reference kicks and VS1-08 chose four: run it with all four, or pick three. Needed by VS1-07.
 - Is tuning between notes worth a Fine knob (IDEA-03)? Proposed: after v1.
-- A default button at the top of the panel (IDEA-04): proposed for slice 5. Polish of the panel (IDEA-05): proposed after CORE-01.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

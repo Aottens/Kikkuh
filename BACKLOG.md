@@ -31,7 +31,7 @@ Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03, VS1-10
 | VS1-04 | With the tail anchor on, changing pitch knobs leaves the tail sample-identical in a test; off restores classic behaviour. | BODY-07 | M | gate3: `tests/manual/vs1-04-tail-anchor.md` |
 | VS1-05 | Velocity, key tracking and retrigger work, and a test shows no step above an agreed size when a kick retriggers at 200 BPM. | PLAY-01..03 | M | done (2026-11-04, #8; run `tests/manual/runs/2026-11-04-VS1-05.md`) |
 | VS1-06 | One panel of real knobs in signal-flow order replaces the generic editor, with the audition pad and loop. | FAST-01, 05 | L | done (2026-11-05, #10; run `tests/manual/runs/2026-11-05-VS1-06.md`) |
-| VS1-07 | Owner run in Bitwig: the CORE-01 test passes, or its findings become rows before slice 2 starts. | CORE-01 | S | todo |
+| VS1-07 | Owner run in Bitwig: the CORE-01 test passes, or its findings become rows before slice 2 starts. | CORE-01 | S | done (2026-11-05, #11; run `tests/manual/runs/2026-11-05-CORE-01.md`) |
 
 ## Slice 2 — Click and Top
 
@@ -39,6 +39,7 @@ Builds: VS1-01 alone (L). Order after it: VS1-02, VS1-08, VS1-09, VS1-03, VS1-10
 | --- | --- | --- | --- | --- |
 | VS2-01 | Click and Top run in parallel over the body with built-in sources and their knobs, from one shared section class. | LAYER-01..03 | M | todo |
 | VS2-02 | Dragging in your own sample works, loads off the audio thread and comes back with the project; a missing file gives silence and a message. | LAYER-01, 04 | L | todo |
+| VS2-03 | Owner run in Bitwig: CORE-01 on all four references with Click and Top, and Beefy SM ELE, missed in VS1-07, is usable within 3 minutes or its findings become rows. | CORE-01 | S | todo |
 
 ## Slice 3 — Master
 

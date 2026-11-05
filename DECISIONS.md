@@ -4,6 +4,21 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-05 — CORE-01 runs on four references; Beefy's miss goes to slice 2, not to the panel (VS1-07, owner)
+
+**Decision:** CORE-01 uses the four references of VS1-08 every run. The first run on the VS1-06 panel made three of
+them usable within 3 minutes; Beefy SM ELE missed on its almost acoustic character, not on a missing or surprising knob,
+and nothing on the panel got in the way. So the panel is not changed and slice 2 starts. Click and Top are the layers
+that can carry Beefy, and VS2-03 runs CORE-01 again on all four after them.
+
+**Alternatives considered:** three references, which by dropping Beefy would have passed the test by choosing what passes;
+fixing the panel before slice 2, as the CORE-01 rule asks after a fail, with no panel finding to fix.
+
+**Reasoning:** the rule protects the panel, and this miss is a sound source BODY does not have. VS1-08 measured Beefy as
+the reference with the most harmonics, the weakest sweep, an unsteady tail and a stereo side.
+
+**Reversal trigger:** VS2-03 still misses Beefy, or names a knob it looked for: then the panel or BODY is fixed first.
+
 ## 2026-11-05 — The panel: printed aluminium, one colour for sounding, PITCH before OSC (VS1-06, owner)
 
 **Decision:** the panel the owner approved in a clickable prototype after research (`docs/research/panel-design.md`). A flat

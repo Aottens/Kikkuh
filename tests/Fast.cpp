@@ -312,15 +312,15 @@ TEST_CASE ("fast_05d_a_knob_moves_as_a_pro_expects")
         CHECK (velocity.getValue() == Catch::Approx (30.0).margin (0.5));
         velocity.mouseUp (mouseAt (velocity, start.translated (0.0f, -120.0f), start, {}, true));
     }
-    SECTION ("on Tune a semitone takes 12 points, and with Shift 60")
+    SECTION ("on Tune a semitone takes 30 points, and with Shift 150")
     {
         auto& tune = knob (panel, "body_tune");
         tune.setValue (33.0, juce::sendNotificationSync);
         drag (tune, 120.0f);
-        CHECK (tune.getValue() == Catch::Approx (43.0).margin (0.5));
+        CHECK (tune.getValue() == Catch::Approx (37.0).margin (0.5));
         tune.setValue (33.0, juce::sendNotificationSync);
         drag (tune, 120.0f, juce::ModifierKeys::shiftModifier);
-        CHECK (tune.getValue() == Catch::Approx (35.0).margin (0.5));
+        CHECK (tune.getValue() == Catch::Approx (34.0).margin (0.5));
     }
     SECTION ("the wheel is 5 times finer with Shift")
     {
@@ -533,6 +533,39 @@ TEST_CASE ("fast_05l_one_grid")
         CHECK (area ("audition_pad").getRight() == area ("audition_loop").getRight());
         CHECK (area ("audition_loop").getRight() == area ("play_key_track").getRight());
         CHECK (area ("audition_loop").getBottom() == area (top.front()).getBottom());
+    }
+}
+
+TEST_CASE ("fast_05m_printed_lines_set_the_sections_apart")
+{
+    Panel panel;
+    const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
+    const auto print = juce::Colour (panel::print);
+    REQUIRE (std::size (panel::sectionLines) == sections.size() - 1);
+
+    size_t gap = 0;
+    for (const auto x : panel::sectionLines)
+    {
+        INFO (x);
+        // It runs from just below the signal line to the bottom row's value line, 1 point wide.
+        for (const auto y : { 45, 100, 200, 300 })
+            CHECK (image.getPixelAt (x, y) == print);
+        CHECK (image.getPixelAt (x - 1, 100) == juce::Colour (panel::plate));
+        CHECK (image.getPixelAt (x + 1, 100) == juce::Colour (panel::plate));
+        CHECK (image.getPixelAt (x, 310) == juce::Colour (panel::plate));
+
+        // It lies between its two sections and through no control.
+        for (const auto& section : sections)
+            for (const auto& id : section)
+            {
+                const auto bounds = findById (*panel.editor, id)->getBounds();
+                CHECK (! (bounds.getX() <= x && x < bounds.getRight()));
+            }
+        for (const auto& id : sections[gap])
+            CHECK (findById (*panel.editor, id)->getBounds().getCentreX() < x);
+        for (const auto& id : sections[gap + 1])
+            CHECK (findById (*panel.editor, id)->getBounds().getCentreX() > x);
+        ++gap;
     }
 }
 

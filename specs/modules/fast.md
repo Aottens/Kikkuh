@@ -53,7 +53,8 @@ empty places for them.
   and text scale by one factor. The default size is 100 %, and the size comes back when the editor is reopened on the same
   instance.
 - **FAST-05d** Moving a control sets its parameter, and a change from the host moves the control. Dragging is vertical:
-  240 points cover the whole range, and on Tune each semitone takes 12 points, because at 240 a note is hard to hit. With Shift it is
+  240 points cover the whole range, and on Tune each semitone takes 30 points, because a note must be easy to hit (12 was still much too fast in the owner's re-test). A drag does not stop
+  at the edge of the screen. With Shift it is
   5 times finer, and pressing or releasing Shift during a drag does not make the value jump. The wheel moves a knob the mouse is over, and
   with Shift it is 5 times finer as well, on macOS as a horizontal wheel too. Double-click and Cmd-click (Ctrl-click on Windows) return
   it to the parameter's default.
@@ -73,6 +74,8 @@ empty places for them.
 - **FAST-05l** The grid holds: within a row, discs share their centre line, labels and values their line, and switches are centred on the
   disc line. A bottom control's centre lies on its column. Columns within a section are 88 points apart. The pad and the Loop switch share
   their left and right edges with the row below them, and the Loop switch ends on the top row's value line.
+- **FAST-05m** A printed line, 1 point wide in the secondary print colour, sets each section apart: it drops from the signal line to the bottom row's
+  value line, between two sections, through no control. (Owner, 2026-11-05.)
 - **FAST-05k** Legibility: the secondary print on the plate has a contrast of at least 4.5:1, the WCAG floor for text.
   Labels and values are 13 points at 100 %, and no text on a label is below 11.
 

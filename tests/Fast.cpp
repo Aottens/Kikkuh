@@ -152,30 +152,47 @@ const std::vector<std::vector<juce::String>> sections {
     { "body_filter_cutoff", "body_filter_res", "body_filter_env" }
 };
 
+// The second band, below the first (specs/modules/layer.md).
+const std::vector<std::vector<juce::String>> layerSections {
+    { "click_level", "click_decay", "click_hp", "click_lp", "click_source", "click_tune" },
+    { "top_level", "top_decay", "top_hp", "top_lp", "top_source", "top_tune" }
+};
+constexpr int stageHeight = 598, bandOffset = 280;
+
 void checkLayout (juce::AudioProcessorEditor& editor)
 {
     std::vector<juce::Rectangle<float>> all;
-    float rightmostCentre = -1.0f;
-    for (const auto& section : sections)
+    float firstBandBottom = 0.0f, secondBandTop = 1.0e9f;
+    for (const auto* band : { &sections, &layerSections })
     {
-        float leftmost = 1.0e9f, rightmost = -1.0f;
-        for (const auto& id : section)
+        float rightmostCentre = -1.0f;
+        for (const auto& section : *band)
         {
-            auto* control = findById (editor, id);
-            INFO (id);
-            REQUIRE (control != nullptr);
-            CHECK (control->isVisible());
-            const auto bounds = boundsIn (editor, *control);
-            CHECK (editor.getLocalBounds().toFloat().expanded (0.5f).contains (bounds));
-            for (const auto& other : all)
-                CHECK (bounds.getIntersection (other).getWidth() * bounds.getIntersection (other).getHeight() < 1.0f);
-            all.push_back (bounds);
-            leftmost = juce::jmin (leftmost, bounds.getCentreX());
-            rightmost = juce::jmax (rightmost, bounds.getCentreX());
+            float leftmost = 1.0e9f, rightmost = -1.0f;
+            for (const auto& id : section)
+            {
+                auto* control = findById (editor, id);
+                INFO (id);
+                REQUIRE (control != nullptr);
+                CHECK (control->isVisible());
+                const auto bounds = boundsIn (editor, *control);
+                CHECK (editor.getLocalBounds().toFloat().expanded (0.5f).contains (bounds));
+                for (const auto& other : all)
+                    CHECK (bounds.getIntersection (other).getWidth() * bounds.getIntersection (other).getHeight() < 1.0f);
+                all.push_back (bounds);
+                leftmost = juce::jmin (leftmost, bounds.getCentreX());
+                rightmost = juce::jmax (rightmost, bounds.getCentreX());
+                if (band == &sections)
+                    firstBandBottom = juce::jmax (firstBandBottom, bounds.getBottom());
+                else
+                    secondBandTop = juce::jmin (secondBandTop, bounds.getY());
+            }
+            CHECK (leftmost > rightmostCentre);
+            rightmostCentre = rightmost;
         }
-        CHECK (leftmost > rightmostCentre);
-        rightmostCentre = rightmost;
     }
+    // CLICK and TOP stand below everything of the first band.
+    CHECK (secondBandTop > firstBandBottom);
 }
 
 juce::MouseEvent mouseAt (juce::Component& c, juce::Point<float> position, juce::Point<float> down, juce::ModifierKeys mods, bool dragged)
@@ -228,7 +245,7 @@ TEST_CASE ("fast_05b_one_screen_in_signal_order_at_every_size")
     REQUIRE (width == 1144);
     for (const auto scale : { 1.0, 0.8, 2.0 })
     {
-        panel.editor->setSize (juce::roundToInt (1144 * scale), juce::roundToInt (318 * scale));
+        panel.editor->setSize (juce::roundToInt (1144 * scale), juce::roundToInt (stageHeight * scale));
         INFO (scale);
         checkLayout (*panel.editor);
 
@@ -261,15 +278,15 @@ TEST_CASE ("fast_05c_resizable_at_a_fixed_ratio_and_the_size_comes_back")
 {
     Panel panel;
     CHECK (panel.editor->getWidth() == 1144);
-    CHECK (panel.editor->getHeight() == 318);
+    CHECK (panel.editor->getHeight() == stageHeight);
     CHECK (panel.editor->isResizable());
     auto* limits = panel.editor->getConstrainer();
     REQUIRE (limits != nullptr);
-    CHECK (limits->getFixedAspectRatio() == Catch::Approx (1144.0 / 318.0).margin (0.001));
+    CHECK (limits->getFixedAspectRatio() == Catch::Approx (1144.0 / stageHeight).margin (0.001));
     CHECK (limits->getMinimumWidth() == Catch::Approx (1144 * 0.8).margin (1.0));
     CHECK (limits->getMaximumWidth() == 2288);
 
-    panel.editor->setSize (1430, 398);
+    panel.editor->setSize (1430, 748);
     panel.editor = nullptr;
     panel.editor.reset (panel.plugin.createEditor());
     CHECK (panel.editor->getWidth() == 1430);
@@ -549,6 +566,65 @@ TEST_CASE ("fast_05l_one_grid")
             CHECK (area (right).getCentreX() - area (left).getCentreX() == 84);
         }
     }
+    SECTION ("the second band is the first one again, 280 points lower")
+    {
+        const std::vector<juce::String> layerTop { "click_level", "click_decay", "click_hp", "click_lp", "top_level", "top_decay", "top_hp", "top_lp" };
+        const std::vector<juce::String> layerBottom { "click_tune", "top_tune" };
+        for (const auto& id : layerTop)
+        {
+            INFO (id);
+            CHECK (discY (id) == discY (top.front()) + bandOffset);
+            CHECK (valueY (id) == valueY (top.front()) + bandOffset);
+        }
+        for (const auto& id : layerBottom)
+        {
+            INFO (id);
+            CHECK (discY (id) == discY (bottom.front()) + bandOffset);
+            CHECK (valueY (id) == valueY (bottom.front()) + bandOffset);
+        }
+        for (const auto* id : { "click_source", "top_source" })
+            CHECK (area (id).getCentreY() == (discY (bottom.front()) - 19 + valueY (bottom.front())) / 2 + bandOffset);
+
+        const std::pair<const char*, int> columns[] = {
+            { "click_level", 252 }, { "click_source", 252 }, { "click_decay", 336 }, { "click_tune", 336 }, { "click_hp", 420 }, { "click_lp", 504 },
+            { "top_level", 608 }, { "top_source", 608 }, { "top_decay", 692 }, { "top_tune", 692 }, { "top_hp", 776 }, { "top_lp", 860 }
+        };
+        for (const auto& [id, x] : columns)
+        {
+            INFO (id);
+            CHECK (area (id).getCentreX() == x);
+        }
+
+        const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
+        const auto ink = juce::Colour (panel::ink), plate = juce::Colour (panel::plate);
+        for (const auto& [ids, radius] : { std::pair { layerTop, 34 }, std::pair { layerBottom, 19 } })
+            for (const auto& id : ids)
+            {
+                INFO (id);
+                const auto x = area (id).getCentreX(), y = discY (id);
+                CHECK (image.getPixelAt (x, y + radius - 2) == ink);
+                CHECK (image.getPixelAt (x, y + radius + 2) == plate);
+            }
+    }
+    SECTION ("the Source switch names its source and is never filled")
+    {
+        for (const auto* id : { "click_source", "top_source" })
+        {
+            INFO (id);
+            auto* button = dynamic_cast<juce::Button*> (findById (*panel.editor, id));
+            REQUIRE (button != nullptr);
+            setParam (panel.plugin, id, 0.0f);
+            dynamic_cast<juce::Timer*> (panel.editor.get())->timerCallback(); // the panel follows the host within one tick
+            CHECK (button->getButtonText() == "Tone");
+            setParam (panel.plugin, id, 1.0f);
+            dynamic_cast<juce::Timer*> (panel.editor.get())->timerCallback(); // the panel follows the host within one tick
+            CHECK (button->getButtonText() == "Noise");
+            // Never ink-filled: its centre stays plate in both positions.
+            const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
+            const auto bounds = button->getBounds();
+            CHECK (image.getPixelAt (bounds.getX() + 4, bounds.getCentreY()) != juce::Colour (panel::ink));
+        }
+    }
     SECTION ("the pad and the Loop switch line up with the row below")
     {
         CHECK (area ("audition_pad").getX() == area ("audition_loop").getX());
@@ -593,6 +669,32 @@ TEST_CASE ("fast_05m_printed_lines_set_the_sections_apart")
             CHECK (findById (*panel.editor, id)->getBounds().getCentreX() > x);
         ++gap;
     }
+}
+
+TEST_CASE ("fast_05m_a_printed_line_sets_click_apart_from_top")
+{
+    Panel panel;
+    const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
+    const auto plate = juce::Colour (panel::plate);
+    constexpr int x = 556;
+    for (const auto y : { 60, 100, 200, 300 })
+    {
+        INFO (y + bandOffset);
+        CHECK (image.getPixelAt (x, y + bandOffset) == juce::Colour (panel::lineDark));
+        CHECK (image.getPixelAt (x + 1, y + bandOffset) == juce::Colour (panel::lineLight));
+        CHECK (image.getPixelAt (x - 1, y + bandOffset) == plate);
+        CHECK (image.getPixelAt (x + 2, y + bandOffset) == plate);
+    }
+    CHECK (image.getPixelAt (x, 48 + bandOffset) == plate);
+    CHECK (image.getPixelAt (x, 310 + bandOffset) == plate);
+    for (size_t side = 0; side < 2; ++side)
+        for (const auto& id : layerSections[side])
+        {
+            INFO (id);
+            auto* control = findById (*panel.editor, id);
+            REQUIRE (control != nullptr);
+            CHECK ((control->getBounds().getCentreX() < x) == (side == 0));
+        }
 }
 
 TEST_CASE ("fast_05k_text_can_be_read")

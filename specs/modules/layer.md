@@ -133,18 +133,21 @@ missing file giving silence and a message, and the Start knob.
 ## The panel (VS2-04)
 
 FAST-05 holds for the new controls: one control per parameter (FAST-05a), the grid (FAST-05l), section lines (FAST-05m).
-The plate grows downward by one row band, and CLICK and TOP stand on it, left to right, with the signal line running
-through them to the same arrow. Each section has four columns:
+The plate grows downward by a second band of 280 points, to **1144 x 598**: the first band's geometry again, 280 points
+lower, with its own signal line and the titles CLICK and TOP on it. CLICK stands under PITCH and TOP to its right, with a
+section line between them at x = 556 (two tones, as FAST-05m, from below the second signal line to its bottom value line).
+Each section has four columns 84 points apart, L knobs on top and the bottom row below, as in the first band:
 
-| Column | Top row (L) | Bottom row (S) |
-| --- | --- | --- |
-| 1 | Level | Source |
-| 2 | Decay | Tune |
-| 3 | High-pass | |
-| 4 | Low-pass | |
+| Column | CLICK x | TOP x | Top row (L) | Bottom row |
+| --- | --- | --- | --- | --- |
+| 1 | 252 | 608 | Level | Source (switch, its text the source's name: "Tone" or "Noise"; never filled, it is a choice, not on or off) |
+| 2 | 336 | 692 | Decay | Tune (S) |
+| 3 | 420 | 776 | High-pass | |
+| 4 | 504 | 860 | Low-pass | |
 
-Start takes the empty place under High-pass when it arrives in VS2-02. The panel changes, so CORE-01 is run again: VS2-03,
-after VS2-02.
+Labels: Level, Decay, High-pass, Low-pass, Source, Tune. Values as FAST-05j: dB with "Off" at the bottom, ms, Hz and from
+1000 Hz up kHz as Cutoff, semitones. Start takes the empty place under High-pass when it arrives in VS2-02. The panel
+changes, so CORE-01 is run again: VS2-03, after VS2-02.
 
 ## Engineering, as it applies to LAYER
 

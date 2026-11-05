@@ -68,8 +68,7 @@ length, not a time constant: when Decay has passed, the curve has arrived.
 - **BODY-02d** The readout gives the note the tail actually lands on, taken at the moment the amp
   envelope has fallen to -40 dB. If the pitch envelope is done by then, it reads Tune exactly ("A0").
   If not, it reads the nearest note with cents ("C#1 +23 ct"), and a measured render agrees within
-  10 cents. The processor offers the readout now; VS1-06 puts it on the panel, because the generic
-  editor cannot show it.
+  10 cents. The panel shows it (FAST-05f).
 
 ### BODY-03 Pitch envelope
 

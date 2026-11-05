@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include <ui/PanelEditor.h>
 
 namespace
 {
@@ -91,10 +92,29 @@ dsp::BodyParams PluginProcessor::readParams() const
              raw[13]->load(), raw[14]->load(), raw[15]->load(), raw[18]->load() };
 }
 
-void PluginProcessor::prepareToPlay (double sampleRate, int)
+void PluginProcessor::prepareToPlay (double newRate, int)
 {
     voice.setParams (readParams());
-    voice.prepare (sampleRate);
+    voice.prepare (newRate);
+    sampleRate = newRate;
+    loop.reset();
+}
+
+// FAST-01: the loop follows the host's PPQ while the transport runs, and its tempo while it stands still.
+void PluginProcessor::beginLoop (int numSamples, bool on)
+{
+    bool rolling = false;
+    double ppq = 0.0, bpm = 0.0;
+    if (auto* head = getPlayHead())
+        if (const auto position = head->getPosition())
+        {
+            const auto ppqPosition = position->getPpqPosition();
+            const auto tempo = position->getBpm();
+            bpm = tempo ? *tempo : 0.0;
+            ppq = ppqPosition ? *ppqPosition : 0.0;
+            rolling = position->getIsPlaying() && ppqPosition && std::isfinite (ppq) && tempo && bpm >= 1.0;
+        }
+    loop.begin (on, numSamples, sampleRate, rolling, ppq, bpm);
 }
 
 void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi)
@@ -112,10 +132,33 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         }
     };
 
+    // FAST-01: the pad and the loop are heard live only; a bounce never holds them.
+    const auto live = ! isNonRealtime();
+    const auto kick = [&] (float level, int note) {
+        voice.trigger (level, note);
+        ++kicks;
+    };
+    if (padPressed.exchange (false) && live)
+        kick (1.0f, -1);
+
+    beginLoop (buffer.getNumSamples(), live && loopOn);
+    int loopHit = loop.next();
+    // Loop hits up to `limit`, in order; one at the same sample as a MIDI note goes first.
     int position = 0;
+    const auto playLoop = [&] (int limit) {
+        for (; loopHit >= 0 && loopHit <= limit; loopHit = loop.next())
+        {
+            render (position, juce::jmax (position, loopHit));
+            position = juce::jmax (position, loopHit);
+            kick (1.0f, -1);
+            ++loopHits;
+        }
+    };
+
     for (const auto metadata : midi)
     {
         const auto offset = juce::jlimit (position, buffer.getNumSamples(), metadata.samplePosition);
+        playLoop (offset);
         render (position, offset);
         position = offset;
 
@@ -124,9 +167,10 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         {
             // PLAY-01/02: both knobs are read here, at the note-on, and never smoothed.
             const auto level = 1.0f - raw[16]->load() * 0.01f * (1.0f - message.getFloatVelocity());
-            voice.trigger (level, raw[17]->load() > 0.5f ? juce::jlimit (24, 60, message.getNoteNumber()) : -1);
+            kick (level, raw[17]->load() > 0.5f ? juce::jlimit (24, 60, message.getNoteNumber()) : -1);
         }
     }
+    playLoop (buffer.getNumSamples());
     render (position, buffer.getNumSamples());
 }
 
@@ -139,7 +183,7 @@ bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 
 juce::AudioProcessorEditor* PluginProcessor::createEditor()
 {
-    return new juce::GenericAudioProcessorEditor (*this);
+    return new PanelEditor (*this);
 }
 
 void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)

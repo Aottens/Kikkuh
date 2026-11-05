@@ -8,7 +8,7 @@ This file is the handoff: where we are, what is next, what waits. It is not a lo
 BODY now plays what the owner chose in VS1-09: a sweep in two stages, a start at full level and 6 dB of hard clipping
 by default, and it measures as the sketch did. Older projects keep their sound (state version 2). BODY-05's filter type
 is still a proposal.
-The panel is there: one printed plate in signal order, with the tail readout, a hit pad and a loop. Tests cover what the controls do; how it feels and whether Bitwig plays the pad with the transport stopped is for the VS1-06 run.
+The panel is there: one printed plate in signal order, with the tail readout, a hit pad and a loop. Tests cover what the controls do; how it feels is for the VS1-06 re-test.
 At the defaults a kick peaks at +1.17 dBFS at velocity 127, and nothing limits it until the Master section (VS3-01).
 The kick now plays: Velocity and Key Track are knobs, and a new note cuts off a ringing one without a click (3 ms fade,
 no knob). With Key Track on, a C3 at the defaults peaks at +3.1 dBFS, also unlimited until VS3-01.
@@ -21,7 +21,7 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
    passes the oversampling filters, which delay and ring.
 
 ## Waiting for a run in Bitwig (gate 3, owner)
-- VS1-06: `tests/manual/vs1-06-panel.md`. Its step 3 is the main question: do the pad and the loop sound with the transport stopped?
+- VS1-06: `tests/manual/vs1-06-panel.md`. First run done, and the pad and the loop sound with the transport stopped; only the re-test is left: the grid, Tune, Shift on the wheel and the bounce.
 - VS1-04: `tests/manual/vs1-04-tail-anchor.md`. Its step 2 is the main question: does the bend cost the chosen kick anything?
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.

@@ -66,7 +66,7 @@ private:
     double sampleRate = 44100.0;
     std::atomic<bool> padPressed { false }, loopOn { false };
     std::atomic<int> kicks { 0 }, loopHits { 0 };
-    int panelWidth = 1124;
+    int panelWidth = 1154;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PluginProcessor)
 };

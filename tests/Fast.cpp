@@ -327,7 +327,10 @@ TEST_CASE ("fast_05d_a_knob_moves_as_a_pro_expects")
         const auto wheel = [&] (float dx, float dy, juce::ModifierKeys mods) {
             velocity.setValue (0.0, juce::sendNotificationSync);
             juce::Thread::sleep (3); // the slider ignores a second event with the same time
-            velocity.mouseWheelMove (mouseAt (velocity, { 10.0f, 10.0f }, { 10.0f, 10.0f }, mods, false), { dx, dy, false, false, false });
+            const juce::Point<float> at { 10.0f, 10.0f }; // no button down: the slider ignores the wheel during a drag
+            const auto now = juce::Time::getCurrentTime();
+            velocity.mouseWheelMove ({ juce::Desktop::getInstance().getMainMouseSource(), at, mods, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, &velocity, &velocity, now, at, now, 0, false },
+                                     { dx, dy, false, false, false });
             return velocity.getValue();
         };
         const auto plain = wheel (0.0f, 0.1f, {});

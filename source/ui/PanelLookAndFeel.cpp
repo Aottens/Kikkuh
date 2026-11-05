@@ -85,7 +85,7 @@ void PanelLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int wi
 juce::Slider::SliderLayout PanelLookAndFeel::getSliderLayout (juce::Slider& slider)
 {
     const auto& knob = dynamic_cast<Knob&> (slider);
-    return { { (slider.getWidth() - knob.box()) / 2, 0, knob.box(), knob.box() },
+    return { { 0, 0, slider.getWidth(), knob.box() },
              { 0, knob.box() + 16, slider.getWidth(), 17 } };
 }
 

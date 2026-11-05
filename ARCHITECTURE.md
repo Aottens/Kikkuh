@@ -22,7 +22,7 @@ feeds RUMBLE, whose output joins before MASTER. The bus layout is decided before
   with `tests/Render.h` and writes a WAV. `kikkuh-measure` (HARN-05) prints the numbers of `tests/Measure.h`
   for a WAV or AIFF. `kikkuh-round` (HARN-07) turns a round file into blind, level-matched WAVs with the
   sketch voice `tools/Sketch.h` (HARN-08), plain C++ on `dsp::MorphOsc` for listening only. None is shipped.
-- `source/ui/`: the panel. `PanelEditor` scales one fixed stage of 1124 x 318 points; `Knob` and `PanelLookAndFeel` draw it, and `PanelColours.h` holds its colours. Reads state, sends parameter changes and sets the pad and loop atomics; no DSP.
+- `source/ui/`: the panel. `PanelEditor` scales one fixed stage of 1154 x 318 points; `Knob` and `PanelLookAndFeel` draw it, and `PanelColours.h` holds its colours. Reads state, sends parameter changes and sets the pad and loop atomics; no DSP.
 - `assets/fonts/`: four cuts of Archivo, compiled in as binary data, with their licence.
 
 ## Threads

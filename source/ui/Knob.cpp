@@ -84,10 +84,11 @@ void Knob::mouseDown (const juce::MouseEvent& e)
     markValue (true);
 }
 
-// 240 points cover the range, 1200 with Shift; incremental, so Shift pressed or released mid-drag does not jump.
+// 240 points cover the range, 1200 with Shift; on Tune 12 points a semitone, 432 and 2160. Incremental, so Shift pressed or released mid-drag does not jump.
 void Knob::mouseDrag (const juce::MouseEvent& e)
 {
-    norm = juce::jlimit (0.0, 1.0, norm + (lastY - e.position.y) / (e.mods.isShiftDown() ? 1200.0 : 240.0));
+    const auto range = getComponentID() == "body_tune" ? 432.0 : 240.0;
+    norm = juce::jlimit (0.0, 1.0, norm + (lastY - e.position.y) / (e.mods.isShiftDown() ? range * 5.0 : range));
     lastY = e.position.y;
     setValue (proportionOfLengthToValue (norm), juce::sendNotificationSync);
 }
@@ -96,4 +97,16 @@ void Knob::mouseUp (const juce::MouseEvent& e)
 {
     markValue (false);
     Slider::mouseUp (e);
+}
+
+// With Shift the wheel is 5 times finer, also as a horizontal wheel.
+void Knob::mouseWheelMove (const juce::MouseEvent& e, const juce::MouseWheelDetails& wheel)
+{
+    auto finer = wheel;
+    if (e.mods.isShiftDown())
+    {
+        finer.deltaX /= 5.0f;
+        finer.deltaY /= 5.0f;
+    }
+    Slider::mouseWheelMove (e, finer);
 }

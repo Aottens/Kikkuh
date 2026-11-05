@@ -3,7 +3,7 @@
 #include "PanelLookAndFeel.h"
 #include <PluginProcessor.h>
 
-// FAST-05: the whole panel on one screen. Everything lives in one stage of 1124 x 318 points, scaled to the window.
+// FAST-05: the whole panel on one screen. Everything lives in one stage of 1154 x 318 points, scaled to the window.
 class PanelEditor : public juce::AudioProcessorEditor, public juce::Timer
 {
 public:

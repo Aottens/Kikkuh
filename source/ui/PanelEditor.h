@@ -4,7 +4,7 @@
 #include <PluginProcessor.h>
 
 // FAST-05: the whole panel on one screen. Everything lives in one stage of 1144 x 598 points, scaled to the window.
-class PanelEditor : public juce::AudioProcessorEditor, public juce::Timer
+class PanelEditor : public juce::AudioProcessorEditor, public juce::FileDragAndDropTarget, public juce::Timer
 {
 public:
     explicit PanelEditor (PluginProcessor&);
@@ -12,6 +12,8 @@ public:
 
     void paint (juce::Graphics&) override;
     void resized() override;
+    bool isInterestedInFileDrag (const juce::StringArray&) override;
+    void filesDropped (const juce::StringArray&, int x, int y) override; // LAYER-04a: the second band, CLICK left of the section line, TOP right
     void timerCallback() override; // 30 Hz: the tail readout and the lamps
 
 private:

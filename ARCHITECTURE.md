@@ -15,7 +15,7 @@ feeds RUMBLE, whose output joins before MASTER. The bus layout is decided before
 
 ## Layers
 - `source/dsp/`: plain C++, no JUCE, no I/O. Deterministic; tested with `tests/Render.h` through the
-  processor, or directly. `BodyVoice.h` is the kick's voice, `MorphOsc.h` its band-limited oscillator, `BodyDrive.h` its clip and filter. `LayerVoice.h` is one CLICK or TOP section (LAYER), used twice and added after BODY. `AuditionLoop.h` times the audition loop.
+  processor, or directly. `BodyVoice.h` is the kick's voice, `MorphOsc.h` its band-limited oscillator, `BodyDrive.h` its clip and filter. `LayerVoice.h` is one CLICK or TOP section (LAYER), used twice and added after BODY; it plays Tone, Noise or your own sample. `AuditionLoop.h` times the audition loop.
 - `source/PluginProcessor.*`: JUCE glue. Parameters, state, MIDI and play-head reading, calls into
   `dsp/`. Nothing here decides how a kick sounds.
 - `tools/`: `kikkuh-render` (HARN-04), a development tool that plays a note through the processor
@@ -29,6 +29,8 @@ feeds RUMBLE, whose output joins before MASTER. The bus layout is decided before
 - Audio thread: `processBlock` only; the rules in `CLAUDE.md` apply.
 - Message thread: editor and state load/save. Talks to the audio thread through parameter atomics
   and lock-free snapshots.
+- Sample loader (LAYER-04): one background thread reads a dropped file; the message thread publishes it, and the audio
+  thread takes it at the next note-on through atomic slots. Only the message thread allocates and frees samples.
 
 ## Dependencies
 Linked: JUCE 9.0.5 (Starter tier, see `DECISIONS.md`), clap-juce-extensions (MIT, pinned SHA).

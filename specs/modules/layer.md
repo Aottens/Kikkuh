@@ -160,8 +160,9 @@ plus Decay (up to 2 s). It is not normalised: Level works on the file as it is.
   before any drop, or a state whose sample is damaged or absent) renders silence, sample-identical to Level Off, and the
   panel shows "Drop a sample" or "Missing:" with the saved name. The rest of the state always loads.
 - **LAYER-04i** ENG-03 and ENG-04 hold on Sample: the same note renders identically twice, across block sizes; with a
-  48 kHz file of white noise the layer's peak and `bands` stay within 1 dB and 3 percentage points between host rates of
-  44.1, 48, 96 and 192 kHz (energy above 20 kHz left out).
+  48 kHz file of white noise the layer's RMS level and `bands` stay within 1 dB and 3 percentage points between host rates
+  of 44.1, 48, 96 and 192 kHz (energy above 20 kHz left out). (Corrected in VS2-02: the first wording used the peak, which
+  on noise read between its samples rises by 1.3 dB at 96 and 192 kHz, as any band-limited reading does.)
 - **LAYER-04j** Saved projects keep their sound (ENG-06a), and the state version stays 3: a state without the Start ids
   or a sample, any version, renders sample-identically to before, because Start defaults to 0 and no older state can
   choose Sample. Source stores its choice's index, so Tone and Noise come back as they were; a host's automation of

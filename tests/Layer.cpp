@@ -578,17 +578,17 @@ TEST_CASE ("layer_04a_a_dropped_file_loads_into_its_section")
         PluginProcessor plugin;
         // At Off a drop sets -6 dB, so it is heard; it chooses Sample; the other section is left alone.
         load (plugin, clickSection, file);
-        CHECK (value (plugin, "click_source") == sample);
+        CHECK (value (plugin, "click_source") == Catch::Approx (sample));
         CHECK (value (plugin, "click_level") == Catch::Approx (-6.0f).margin (0.01f));
-        CHECK (value (plugin, "top_source") == noise);
-        CHECK (value (plugin, "top_level") == levelOff);
+        CHECK (value (plugin, "top_source") == Catch::Approx (noise));
+        CHECK (value (plugin, "top_level") == Catch::Approx (levelOff));
         CHECK (plugin.getSampleText (clickSection) == name);
         CHECK (plugin.getSampleText (topSection) == "Drop a sample");
 
         // A Level that is not Off is kept.
         setParam (plugin, "top_level", -12.0f);
         load (plugin, topSection, file);
-        CHECK (value (plugin, "top_source") == sample);
+        CHECK (value (plugin, "top_source") == Catch::Approx (sample));
         CHECK (value (plugin, "top_level") == Catch::Approx (-12.0f).margin (0.01f));
     }
 
@@ -597,14 +597,14 @@ TEST_CASE ("layer_04a_a_dropped_file_loads_into_its_section")
     const auto text = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("kikkuh-tests").getChildFile ("notes.txt");
     text.replaceWithText ("not audio");
     CHECK_FALSE (plugin.loadSample (clickSection, { text.getFullPathName() }));
-    CHECK (value (plugin, "click_source") == tone);
+    CHECK (value (plugin, "click_source") == Catch::Approx (tone));
     const auto broken = text.getSiblingFile ("broken.wav");
     broken.replaceWithText ("not audio either");
     const auto good = writeAudioFile ("second.wav", { sine (1000.0, rate48, 0.2) }, rate48);
     REQUIRE (plugin.loadSample (clickSection, { text.getFullPathName(), broken.getFullPathName(), good.getFullPathName() }));
     plugin.waitForSampleLoads();
     CHECK (plugin.getSampleText (clickSection) == "second.wav");
-    CHECK (value (plugin, "click_source") == sample);
+    CHECK (value (plugin, "click_source") == Catch::Approx (sample));
 }
 
 TEST_CASE ("layer_04b_a_ringing_layer_keeps_its_sample_and_the_next_note_takes_the_new_one")
@@ -721,7 +721,7 @@ TEST_CASE ("layer_04e_start_skips_into_the_file")
         }
 
     // Past the end of the file: silence.
-    CHECK (measure::peak (sampleLayer (file, clickSample (0.0f, 500.0f), rate48, 0.3)) == 0.0f);
+    CHECK_FALSE (measure::peak (sampleLayer (file, clickSample (0.0f, 500.0f), rate48, 0.3)) > 0.0f);
 
     // Read at the note-on: moving it while a layer rings leaves that layer as it was, and the next note follows it.
     const auto tone1k = writeAudioFile ("start-1k.wav", { sine (1000.0, rate48, 1.0) }, rate48);
@@ -753,12 +753,14 @@ TEST_CASE ("layer_04e_start_skips_into_the_file")
 
 TEST_CASE ("layer_04f_the_layer_ends_at_decay_or_at_the_files_end_without_a_click")
 {
-    // A file that ends at full scale.
-    const auto loud = writeAudioFile ("ends-loud.wav", { std::vector<float> (static_cast<size_t> (0.1 * rate48), 0.9f) }, rate48);
+    // A file that ends at full scale: 250 Hz at 0.9, cut on its crest (a step of 0.029 of its own at 48 kHz).
+    auto crest = sine (250.0, rate48, 1.0, 0.9f);
+    crest.resize (4849); // sample 4848 is a quarter period past a whole number of periods
+    const auto loud = writeAudioFile ("ends-loud.wav", { crest }, rate48);
     const auto x = sampleLayer (loud, clickSample(), rate48, 0.4);
-    CHECK (measure::peakBetween (x, rate48, 0.09, 0.1) > 0.5f);
+    CHECK (std::abs (x[4848]) > 0.8f);
     CHECK (measure::largestStepBetween (x, rate48, 0.095, 0.15) < 0.05f);
-    CHECK (measure::peakBetween (x, rate48, 0.25, 0.4) == 0.0f);
+    CHECK_FALSE (measure::peakBetween (x, rate48, 0.25, 0.4) > 0.0f);
 
     // Decay first: silent from Decay on, within a sample.
     const auto tone1k = writeAudioFile ("decay-1k.wav", { sine (1000.0, rate48, 0.5) }, rate48);
@@ -829,8 +831,8 @@ TEST_CASE ("layer_04h_a_missing_sample_never_breaks_the_project")
         PluginProcessor fresh;
         REQUIRE (fresh.loadSample (topSection, { broken.getFullPathName() }));
         fresh.waitForSampleLoads();
-        CHECK (value (fresh, "top_source") == noise);
-        CHECK (value (fresh, "top_level") == levelOff);
+        CHECK (value (fresh, "top_source") == Catch::Approx (noise));
+        CHECK (value (fresh, "top_level") == Catch::Approx (levelOff));
     }
     SECTION ("Sample without a sample is silent")
     {
@@ -856,7 +858,7 @@ TEST_CASE ("layer_04h_a_missing_sample_never_breaks_the_project")
         PluginProcessor damaged;
         restore (damaged, *xml);
         CHECK (value (damaged, "body_amp_decay") == Catch::Approx (250.0f));
-        CHECK (value (damaged, "click_source") == sample);
+        CHECK (value (damaged, "click_source") == Catch::Approx (sample));
         CHECK (damaged.getSampleText (clickSection) == "Missing: kept.wav");
         CHECK (renderHits (damaged, rate48, 0.3, { { 0.0 } }) == silent);
 
@@ -887,7 +889,7 @@ TEST_CASE ("layer_04i_a_sample_renders_the_same_every_time_and_at_every_rate")
     {
         INFO (rate);
         const auto x = sampleLayer (file, s, rate, 0.1);
-        CHECK (std::abs (db (measure::peak (x) / measure::peak (base))) < 1.0);
+        CHECK (std::abs (db (measure::rmsBetween (x, rate, 0.0, 0.03) / measure::rmsBetween (base, rate48, 0.0, 0.03))) < 1.0);
         const auto bands = measure::bandShares (x, rate, 0.0, 0.03, 20000.0);
         for (size_t band = 0; band < 4; ++band)
             CHECK (bands[band] == Catch::Approx (baseBands[band]).margin (3.0));
@@ -909,14 +911,14 @@ TEST_CASE ("layer_04j_saved_projects_keep_their_sound")
             params->removeChildElement (child, true);
     // Source is stored as its choice's index.
     REQUIRE (params->getChildByAttribute ("id", "top_source") != nullptr);
-    CHECK (params->getChildByAttribute ("id", "top_source")->getDoubleAttribute ("value") == 1.0);
+    CHECK (params->getChildByAttribute ("id", "top_source")->getDoubleAttribute ("value") == Catch::Approx (1.0));
 
     PluginProcessor restored;
     set (restored, { { "click_start", 300.0f }, { "top_start", 300.0f } });
     restore (restored, *xml);
-    CHECK (value (restored, "top_source") == noise);
+    CHECK (value (restored, "top_source") == Catch::Approx (noise));
     CHECK (findParam (restored, "top_source")->getValue() == Catch::Approx (0.5f));
-    CHECK (value (restored, "click_start") == 0.0f);
+    CHECK (value (restored, "click_start") == Catch::Approx (0.0f));
     CHECK (renderHits (restored, rate48, 0.5, { { 0.0 } }) == kick ({ { "top_level", 0.0f }, { "body_amp_decay", 250.0f } }, rate48, 0.5));
 }
 

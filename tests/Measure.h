@@ -88,6 +88,17 @@ inline float peakBetween (const std::vector<float>& x, double sampleRate, double
     return peak (std::vector<float> (x.begin() + static_cast<std::ptrdiff_t> (from), x.begin() + static_cast<std::ptrdiff_t> (to)));
 }
 
+// The RMS level between two times: for noise, where the peak between samples moves with the sample rate.
+inline double rmsBetween (const std::vector<float>& x, double sampleRate, double fromSeconds, double toSeconds)
+{
+    const auto from = std::min (static_cast<size_t> (fromSeconds * sampleRate), x.size());
+    const auto to = std::min (static_cast<size_t> (toSeconds * sampleRate), x.size());
+    double sum = 0.0;
+    for (size_t i = from; i < to; ++i)
+        sum += static_cast<double> (x[i]) * x[i];
+    return to > from ? std::sqrt (sum / static_cast<double> (to - from)) : 0.0;
+}
+
 inline float largestStepBetween (const std::vector<float>& x, double sampleRate, double fromSeconds, double toSeconds)
 {
     const auto from = std::min (static_cast<size_t> (fromSeconds * sampleRate), x.size());

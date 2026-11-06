@@ -1,6 +1,6 @@
 # Kikkuh — State
 
-_Last updated: 2026-11-05 (VS2-01, VS2-04)_
+_Last updated: 2026-11-06 (VS2-01, VS2-04, owner run)_
 
 This file is the handoff: where we are, what is next, what waits. It is not a log.
 
@@ -8,7 +8,9 @@ This file is the handoff: where we are, what is next, what waits. It is not a lo
 Slice 2 has started: Click and Top (`specs/modules/layer.md`, approved with every recommendation) play a tone or noise in
 parallel over the body, through a 12 dB high- and low-pass and a Decay envelope, on a second band of the panel. Both start
 Off, so the kick and saved projects are unchanged and the state version stays 3. The tests found a setting that makes
-Beefy's bright first 5 ms (LAYER-02g); whether it sounds like Beefy is the owner's run. A reloaded state is now exact for
+Beefy's bright first 5 ms (LAYER-02g). The owner's run passed: the defaults and an older project are unchanged, the knobs
+are clean and a click can be made with Tone or Noise; TOP on a built-in source does not feel usable yet, and the Beefy
+setting does not get there and clips (`tests/manual/runs/2026-11-06-VS2-01.md`). A reloaded state is now exact for
 every knob (ENG-06a), which clap-validator had started to fail on.
 BODY now plays what the owner chose in VS1-09: a sweep in two stages, a start at full level and 6 dB of hard clipping
 by default, and it measures as the sketch did. Older projects keep their sound (state version 2). BODY-05's filter type
@@ -28,7 +30,6 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
    sections Off (`layer` in `tests/Layer.cpp`).
 
 ## Waiting for a run in Bitwig (gate 3, owner)
-- VS2-01 and VS2-04: `tests/manual/vs2-01-click-top.md`. Its step 3 is the main question: does a click or a top make the default kick better?
 - VS1-04: `tests/manual/vs1-04-tail-anchor.md`. Its step 2 is the main question: does the bend cost the chosen kick anything?
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.
@@ -39,4 +40,6 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 
 ## Owner decisions open
 - Is tuning between notes worth a Fine knob (IDEA-03)? Proposed: after v1.
+- Transient designer for the attack (IDEA-06)? Proposed: after v1.
+- MASTER at the bottom right, and the panel grows rather than folds (IDEA-07)? Proposed: settled in the slice 3 spec.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

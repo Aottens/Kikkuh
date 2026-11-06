@@ -18,6 +18,8 @@ way round; a task status named in a row ("VS1-02 todo") must match BACKLOG
 | IDEA-03 | Tuning between notes | new | after v1, proposed | body |
 | IDEA-04 | A default button at the top of the panel | triaged | slice 5 | fast |
 | IDEA-05 | Polish of the panel | triaged | after CORE-01 | fast |
+| IDEA-06 | A transient designer for the attack | new | after v1, proposed | master |
+| IDEA-07 | Where the next sections go on the panel | new | slice 3, proposed | fast |
 
 ### IDEA-01 — Send and return for external rumble
 The owner's idea: send the kick out to your own rumble chain and take the result back into Kikkuh.
@@ -59,3 +61,16 @@ smaller, and can you undo it, since one click would throw away a kick. The owner
 Left when the owner approved the panel "for now" in the VS1-06 run: SWEEP 2 is a third kind of line, Tail Anchor reads as part of it, Hit weighs less than the knobs, a note can stand twice at
 Tune and the tail readout, and one knob size on the top row gives no rank between Amount and Shape. Proposed after CORE-01 (VS1-07), which shows which of these get in the way. In that run none of them did ("prima en overzichtelijk"), and the owner
 confirmed the phase. Its run also tries the drag past the screen's edge, which the owner never did: they use the wheel.
+
+### IDEA-06 — A transient designer for the attack
+From the VS2-01 run: a click can be made with Tone or Noise, but the owner would normally do it with an envelope or a
+transient designer. That shapes the attack of the kick that is already there, where CLICK adds a sound on top. Proposed
+after v1: BODY's Amp Attack, Hold and Shape already shape the attack, and MASTER (slice 3) comes first. Open questions:
+on BODY or on the sum, and does it earn a place on the one panel?
+
+### IDEA-07 — Where the next sections go on the panel
+From the VS2-01 run: the owner asked what the empty bottom right is for, and whether sections fold away as more come.
+Proposed for slice 3, in the MASTER spec: MASTER goes at the bottom right, at the end of the signal flow after CLICK and
+TOP, and RUMBLE (slice 4) gets its place in its own spec. Folding sections away hides knobs, which FAST-05 and CORE-01
+rule out (everything on one screen, no tabs), so the panel grows and stays resizable instead. Open question: does
+RUMBLE fit beside MASTER or need a third band?

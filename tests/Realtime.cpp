@@ -19,6 +19,7 @@ TEST_CASE ("eng_01_allocation_guard_counts_only_armed_thread")
         AllocationGuard guard;
         allocateOne();
         CHECK (guard.count() == 1);
+        CHECK (guard.frees() == 1);
     }
 
     allocateOne(); // disarmed: must not count anywhere
@@ -28,6 +29,7 @@ TEST_CASE ("eng_01_allocation_guard_counts_only_armed_thread")
     go = true;
     other.join();
     CHECK (guard.count() == 0);
+    CHECK (guard.frees() == 0);
 }
 
 TEST_CASE ("eng_01_process_block_does_not_allocate")

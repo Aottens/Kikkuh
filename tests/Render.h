@@ -1,5 +1,6 @@
 #pragma once
 
+#include <juce_audio_formats/juce_audio_formats.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <functional>
 #include <vector>
@@ -66,4 +67,27 @@ inline std::vector<float> renderNote (juce::AudioProcessor& plugin, double sampl
 {
     const auto out = renderNoteStereo (plugin, sampleRate, seconds, noteOnSample, note, velocity, std::move (blockSizes), beforeBlock);
     return { out.getReadPointer (0), out.getReadPointer (0) + out.getNumSamples() };
+}
+
+// LAYER-04: an audio file of the test's own making, 24 bit, in a fresh folder; its format follows the extension of `name`.
+inline juce::File writeAudioFile (const juce::String& name, const std::vector<std::vector<float>>& channels, double sampleRate)
+{
+    const auto folder = juce::File::getSpecialLocation (juce::File::tempDirectory).getChildFile ("kikkuh-tests");
+    folder.createDirectory();
+    const auto file = folder.getChildFile (name);
+    file.deleteFile();
+    juce::AudioFormatManager formats;
+    formats.registerBasicFormats();
+    auto* format = formats.findFormatForFileExtension (file.getFileExtension());
+    jassert (format != nullptr);
+    std::unique_ptr<juce::OutputStream> stream = std::make_unique<juce::FileOutputStream> (file);
+    auto writer = format->createWriterFor (stream, juce::AudioFormatWriterOptions {}.withSampleRate (sampleRate)
+                                                       .withNumChannels (static_cast<int> (channels.size()))
+                                                       .withBitsPerSample (24));
+    jassert (writer != nullptr);
+    juce::AudioBuffer<float> buffer (static_cast<int> (channels.size()), static_cast<int> (channels[0].size()));
+    for (size_t ch = 0; ch < channels.size(); ++ch)
+        buffer.copyFrom (static_cast<int> (ch), 0, channels[ch].data(), static_cast<int> (channels[ch].size()));
+    writer->writeFromAudioSampleBuffer (buffer, 0, buffer.getNumSamples());
+    return file;
 }

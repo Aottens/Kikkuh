@@ -154,8 +154,8 @@ const std::vector<std::vector<juce::String>> sections {
 
 // The second band, below the first (specs/modules/layer.md).
 const std::vector<std::vector<juce::String>> layerSections {
-    { "click_level", "click_decay", "click_hp", "click_lp", "click_source", "click_tune" },
-    { "top_level", "top_decay", "top_hp", "top_lp", "top_source", "top_tune" }
+    { "click_level", "click_decay", "click_hp", "click_lp", "click_source", "click_tune", "click_start", "click_sample" },
+    { "top_level", "top_decay", "top_hp", "top_lp", "top_source", "top_tune", "top_start", "top_sample" }
 };
 constexpr int stageHeight = 598, bandOffset = 280;
 
@@ -569,7 +569,7 @@ TEST_CASE ("fast_05l_one_grid")
     SECTION ("the second band is the first one again, 280 points lower")
     {
         const std::vector<juce::String> layerTop { "click_level", "click_decay", "click_hp", "click_lp", "top_level", "top_decay", "top_hp", "top_lp" };
-        const std::vector<juce::String> layerBottom { "click_tune", "top_tune" };
+        const std::vector<juce::String> layerBottom { "click_tune", "top_tune", "click_start", "top_start" }; // LAYER-04l
         for (const auto& id : layerTop)
         {
             INFO (id);
@@ -587,7 +587,8 @@ TEST_CASE ("fast_05l_one_grid")
 
         const std::pair<const char*, int> columns[] = {
             { "click_level", 252 }, { "click_source", 252 }, { "click_decay", 336 }, { "click_tune", 336 }, { "click_hp", 420 }, { "click_lp", 504 },
-            { "top_level", 608 }, { "top_source", 608 }, { "top_decay", 692 }, { "top_tune", 692 }, { "top_hp", 776 }, { "top_lp", 860 }
+            { "top_level", 608 }, { "top_source", 608 }, { "top_decay", 692 }, { "top_tune", 692 }, { "top_hp", 776 }, { "top_lp", 860 },
+            { "click_start", 420 }, { "top_start", 776 }, { "click_sample", 504 }, { "top_sample", 860 } // LAYER-04l
         };
         for (const auto& [id, x] : columns)
         {
@@ -619,6 +620,9 @@ TEST_CASE ("fast_05l_one_grid")
             setParam (panel.plugin, id, 1.0f);
             dynamic_cast<juce::Timer*> (panel.editor.get())->timerCallback(); // the panel follows the host within one tick
             CHECK (button->getButtonText() == "Noise");
+            setParam (panel.plugin, id, 2.0f);
+            dynamic_cast<juce::Timer*> (panel.editor.get())->timerCallback();
+            CHECK (button->getButtonText() == "Sample");
             // Never ink-filled: its centre stays plate in both positions.
             const auto image = panel.editor->createComponentSnapshot (panel.editor->getLocalBounds());
             const auto bounds = button->getBounds();
@@ -631,6 +635,71 @@ TEST_CASE ("fast_05l_one_grid")
         CHECK (area ("audition_pad").getRight() == area ("audition_loop").getRight());
         CHECK (area ("audition_loop").getRight() == area ("play_key_track").getRight());
         CHECK (area ("audition_loop").getBottom() == area (top.front()).getBottom());
+    }
+}
+
+// --- LAYER-04 Your own sample, on the panel ---
+
+TEST_CASE ("layer_04a_a_file_dropped_on_a_section_loads_there")
+{
+    Panel panel;
+    auto* target = dynamic_cast<juce::FileDragAndDropTarget*> (panel.editor.get());
+    REQUIRE (target != nullptr);
+    const auto wav = writeAudioFile ("panel-drop.wav", { std::vector<float> (4800, 0.25f) }, rate48);
+    const auto text = wav.getSiblingFile ("panel-drop.txt");
+    text.replaceWithText ("not audio");
+
+    CHECK (target->isInterestedInFileDrag ({ wav.getFullPathName() }));
+    CHECK (target->isInterestedInFileDrag ({ text.getFullPathName(), wav.getFullPathName() }));
+    CHECK_FALSE (target->isInterestedInFileDrag ({ text.getFullPathName() }));
+
+    const auto source = [&] (const char* id) { return findParam (panel.plugin, id)->getCurrentValueAsText(); };
+    // On the first band nothing loads.
+    target->filesDropped ({ wav.getFullPathName() }, 400, 150);
+    panel.plugin.waitForSampleLoads();
+    CHECK (source ("click_source") == "Tone");
+    CHECK (source ("top_source") == "Noise");
+
+    // On CLICK's part of the second band, CLICK; on TOP's, TOP. The panel is at its own size, so points are pixels.
+    target->filesDropped ({ text.getFullPathName(), wav.getFullPathName() }, 300, 400);
+    panel.plugin.waitForSampleLoads();
+    CHECK (source ("click_source") == "Sample");
+    CHECK (source ("top_source") == "Noise");
+    target->filesDropped ({ wav.getFullPathName() }, 700, 400);
+    panel.plugin.waitForSampleLoads();
+    CHECK (source ("top_source") == "Sample");
+
+    // The name shows under Low-pass within one tick.
+    dynamic_cast<juce::Timer*> (panel.editor.get())->timerCallback();
+    auto* name = dynamic_cast<juce::Label*> (findById (*panel.editor, "click_sample"));
+    REQUIRE (name != nullptr);
+    CHECK (name->getText() == "panel-drop.wav");
+}
+
+TEST_CASE ("layer_04l_start_the_name_and_a_source_switch_with_three_steps")
+{
+    Panel panel;
+    auto* name = dynamic_cast<juce::Label*> (findById (*panel.editor, "top_sample"));
+    REQUIRE (name != nullptr);
+    CHECK (name->getText() == "Drop a sample");
+    // One line on the bottom row, centred on the switches' line.
+    const auto line = findById (*panel.editor, "top_source")->getBounds().getCentreY();
+    CHECK (name->getBounds().getCentreY() == line);
+    CHECK (name->getBounds().getHeight() <= 32);
+
+    // The switch steps Tone, Noise, Sample and round again.
+    for (const auto* id : { "click_source", "top_source" })
+    {
+        INFO (id);
+        auto* button = dynamic_cast<juce::Button*> (findById (*panel.editor, id));
+        REQUIRE (button != nullptr);
+        REQUIRE (button->onClick != nullptr);
+        setParam (panel.plugin, id, 0.0f);
+        for (const auto* next : { "Noise", "Sample", "Tone" })
+        {
+            button->onClick();
+            CHECK (findParam (panel.plugin, id)->getCurrentValueAsText() == next);
+        }
     }
 }
 

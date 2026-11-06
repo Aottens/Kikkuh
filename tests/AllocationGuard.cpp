@@ -10,6 +10,7 @@ namespace
 {
 thread_local bool armed = false;
 thread_local int allocations = 0;
+thread_local int deallocations = 0;
 
 void* allocate (std::size_t size, std::size_t align)
 {
@@ -33,8 +34,17 @@ void* allocateOrThrow (std::size_t size, std::size_t align)
     throw std::bad_alloc();
 }
 
+void release (void* p) noexcept
+{
+    if (armed && p != nullptr)
+        ++deallocations;
+    std::free (p);
+}
+
 void freeAligned (void* p) noexcept
 {
+    if (armed && p != nullptr)
+        ++deallocations;
 #if defined(_WIN32)
     _aligned_free (p);
 #else
@@ -43,9 +53,10 @@ void freeAligned (void* p) noexcept
 }
 }
 
-AllocationGuard::AllocationGuard() { allocations = 0; armed = true; }
+AllocationGuard::AllocationGuard() { allocations = deallocations = 0; armed = true; }
 AllocationGuard::~AllocationGuard() { armed = false; }
 int AllocationGuard::count() const { return allocations; }
+int AllocationGuard::frees() const { return deallocations; }
 
 void* operator new (std::size_t n) { return allocateOrThrow (n, 0); }
 void* operator new[] (std::size_t n) { return allocateOrThrow (n, 0); }
@@ -56,12 +67,12 @@ void* operator new[] (std::size_t n, std::align_val_t a) { return allocateOrThro
 void* operator new (std::size_t n, std::align_val_t a, const std::nothrow_t&) noexcept { return allocate (n, (std::size_t) a); }
 void* operator new[] (std::size_t n, std::align_val_t a, const std::nothrow_t&) noexcept { return allocate (n, (std::size_t) a); }
 
-void operator delete (void* p) noexcept { std::free (p); }
-void operator delete[] (void* p) noexcept { std::free (p); }
-void operator delete (void* p, std::size_t) noexcept { std::free (p); }
-void operator delete[] (void* p, std::size_t) noexcept { std::free (p); }
-void operator delete (void* p, const std::nothrow_t&) noexcept { std::free (p); }
-void operator delete[] (void* p, const std::nothrow_t&) noexcept { std::free (p); }
+void operator delete (void* p) noexcept { release (p); }
+void operator delete[] (void* p) noexcept { release (p); }
+void operator delete (void* p, std::size_t) noexcept { release (p); }
+void operator delete[] (void* p, std::size_t) noexcept { release (p); }
+void operator delete (void* p, const std::nothrow_t&) noexcept { release (p); }
+void operator delete[] (void* p, const std::nothrow_t&) noexcept { release (p); }
 void operator delete (void* p, std::align_val_t) noexcept { freeAligned (p); }
 void operator delete[] (void* p, std::align_val_t) noexcept { freeAligned (p); }
 void operator delete (void* p, std::size_t, std::align_val_t) noexcept { freeAligned (p); }

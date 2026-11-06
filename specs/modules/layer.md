@@ -1,7 +1,7 @@
 # Module spec: layer (LAYER), the CLICK and TOP sections
 
 Status: **approved by the owner (2026-11-05), with every recommendation: Tone and Noise only, Start with VS2-02, 12 dB filters, mono.** Scope: LAYER-01..03 and the panel row, built by VS2-01 and VS2-04;
-LAYER-04 and the Sample source come with VS2-02. **LAYER-04 is proposed (2026-11-06) and waits for the owner (gate 1).**
+LAYER-04 and the Sample source come with VS2-02. **LAYER-04 approved by the owner (2026-11-06), with every recommendation: the sample held in the state, WAV, AIFF and FLAC, 3 s, the noise's sinc kernel, -6 dB on a drop at Off.**
 
 CLICK and TOP are two identical sections, one class in `source/dsp/` used twice, that play in parallel over the body.
 Only their defaults differ. They are what the owner's runs left to them:
@@ -124,7 +124,7 @@ After Decay the section is silent. A Sample also stops at its own end.
 - **LAYER-03f** ENG-01d: `processBlock` does not allocate with both layers on, in a run of retriggers, while every layer
   knob changes. The noise table is built off the audio thread, as the wavetables are.
 
-### LAYER-04 Your own sample (VS2-02, proposed)
+### LAYER-04 Your own sample (VS2-02)
 
 A sample is a file of the owner's, held whole in the project: once dropped, the file itself is no longer needed. It is
 summed to mono (the mean of its channels), kept at its own sample rate and cut at 3 s, which covers Start (up to 1 s)

@@ -4,6 +4,38 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-05 — A reloaded state is exact, fixed in our code rather than worked around (VS2-01)
+
+**Decision:** three causes made a reloaded parameter come back an ulp off, which clap-validator failed on once slice 2
+added knobs and moved its random values: JUCE writes state values rounded ("20.0" for 20.0000019), a skewed range's float
+round trip is not exact, and `replaceState` skips a value only approximately equal to the current one. The state now writes
+nine significant digits, `ranged` picks the knob position whose value is exactly the one asked for, and
+`setStateInformation` sets any value `replaceState` skipped.
+
+**Alternatives considered:** snapping every knob to the precision it shows, which made the wheel stick at the bottom of a
+skewed range (20 Hz on a filter); a fixed seed or a skipped test in clap-validator, which hides the fault from hosts.
+
+**Reasoning:** a host that saves and reloads must get the same project back; the fault was in BODY's knobs too, hidden by
+which values the validator happened to draw.
+
+**Reversal trigger:** a JUCE update that makes the state round trip exact by itself.
+
+## 2026-11-05 — Click and Top: generated sources, silent by default, after BODY's drive (slice 2, owner)
+
+**Decision:** CLICK and TOP are one section class used twice, with Tone and Noise as generated sources (no factory
+samples) and your own sample in VS2-02. Both start at Level Off, so saved projects keep their sound and the state version
+stays 3. They are added after BODY's drive and filter, mono, with 12 dB high- and low-pass filters before a Decay
+envelope. Start comes with the Sample source in VS2-02, as a time into the file.
+
+**Alternatives considered:** the VS1-09 tone click on by default, which lost to no click in round 8; a third source (a
+pulse) or self-made samples with an acoustic character; Start now, as a phase in degrees; 24 dB filters as BODY's; a stereo
+layer for Beefy's side.
+
+**Reasoning:** the owner's ears chose the kick without a click, and noise through two filters covers the bright first 5 ms
+VS1-08 measured on Beefy (LAYER-02g). Filters before the envelope make a section exactly silent after Decay.
+
+**Reversal trigger:** VS2-03 misses Beefy and names a source, a knob or stereo it looked for.
+
 ## 2026-11-05 — CORE-01 runs on four references; Beefy's miss goes to slice 2, not to the panel (VS1-07, owner)
 
 **Decision:** CORE-01 uses the four references of VS1-08 every run. The first run on the VS1-06 panel made three of

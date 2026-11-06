@@ -520,8 +520,9 @@ inline std::vector<double> harmonicsDb (const std::vector<float>& x, double samp
 }
 
 // Percent of the energy below 300 Hz, 300 Hz-1 kHz, 1-4 kHz and above 4 kHz in a stretch (Hann window);
-// all 0 for an empty or silent one.
-inline std::array<double, 4> bandShares (const std::vector<float>& x, double sampleRate, double fromSeconds, double toSeconds)
+// all 0 for an empty or silent one. Energy above `maxHz` is left out, so rates with different Nyquists compare.
+inline std::array<double, 4> bandShares (const std::vector<float>& x, double sampleRate, double fromSeconds, double toSeconds,
+                                         double maxHz = std::numeric_limits<double>::infinity())
 {
     const auto from = std::min (static_cast<size_t> (std::max (0.0, fromSeconds) * sampleRate), x.size());
     const auto to = std::min (static_cast<size_t> (std::max (0.0, toSeconds) * sampleRate), x.size());
@@ -540,6 +541,8 @@ inline std::array<double, 4> bandShares (const std::vector<float>& x, double sam
     for (size_t k = 0; k <= size / 2; ++k)
     {
         const auto hz = static_cast<double> (k) * sampleRate / static_cast<double> (size);
+        if (hz > maxHz)
+            break;
         const auto energy = std::norm (a[k]);
         shares[hz < 300.0 ? 0 : hz < 1000.0 ? 1 : hz < 4000.0 ? 2 : 3] += energy;
         total += energy;

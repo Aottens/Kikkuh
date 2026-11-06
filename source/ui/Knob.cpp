@@ -40,11 +40,11 @@ juce::String Knob::textFor (double value) const
         const auto nearest = juce::roundToInt (value);
         return std::abs (value - nearest) < 0.005 ? waveNames[juce::jlimit (0, 3, nearest)] : juce::String (value, 2);
     }
-    if (id == "body_filter_cutoff")
+    if (id == "body_filter_cutoff" || id.endsWithIgnoreCase ("_hp") || id.endsWithIgnoreCase ("_lp"))
         return value >= 999.5 ? juce::String (value / 1000.0, value >= 9995.0 ? 1 : 2) + " kHz" : juce::String (juce::roundToInt (value)) + " Hz";
 
     const auto text = parameter.getText (parameter.convertTo0to1 (static_cast<float> (value)), 0);
-    return parameter.getLabel().isEmpty() ? text : text + " " + parameter.getLabel();
+    return parameter.getLabel().isEmpty() || text == "Off" ? text : text + " " + parameter.getLabel();
 }
 
 double Knob::valueFor (const juce::String& text) const
@@ -56,6 +56,8 @@ double Knob::valueFor (const juce::String& text) const
         for (int i = 0; i < waveNames.size(); ++i)
             if (typed.length() >= 2 && waveNames[i].startsWithIgnoreCase (typed))
                 return i;
+    if (typed.equalsIgnoreCase ("off"))
+        return parameter.convertFrom0to1 (0.0f);
     if (! typed.containsAnyOf ("0123456789"))
         return getValue();
 

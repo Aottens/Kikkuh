@@ -2,6 +2,7 @@
 
 #include <dsp/AuditionLoop.h>
 #include <dsp/BodyVoice.h>
+#include <dsp/LayerVoice.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
 class PluginProcessor : public juce::AudioProcessor
@@ -56,12 +57,14 @@ private:
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
     dsp::BodyParams readParams() const;
+    dsp::LayerParams readLayer (size_t first) const;
     void migrate (juce::XmlElement& xml, int fromVersion);
     void beginLoop (int numSamples, bool on);
 
     juce::AudioProcessorValueTreeState apvts;
-    std::array<std::atomic<float>*, 19> raw {};
+    std::array<std::atomic<float>*, 31> raw {};
     dsp::BodyVoice voice;
+    dsp::LayerVoice click, top;
     dsp::AuditionLoop loop;
     double sampleRate = 44100.0;
     std::atomic<bool> padPressed { false }, loopOn { false };

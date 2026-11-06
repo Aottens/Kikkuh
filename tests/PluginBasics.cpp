@@ -78,3 +78,34 @@ TEST_CASE ("eng_06_state_carries_a_version")
     CHECK (xml->getIntAttribute ("version") >= 1);
     plugin.setStateInformation (state.getData(), static_cast<int> (state.getSize()));
 }
+
+// ENG-06a, as clap-validator checks it: a reloaded state gives every parameter exactly the value it was saved with.
+TEST_CASE ("eng_06a_a_reloaded_state_is_exact")
+{
+    juce::Random random (42);
+    for (int round = 0; round < 200; ++round)
+    {
+        PluginProcessor saved;
+        for (auto* p : saved.getParameters())
+        {
+            // A switch or a choice holds its whole steps only once restored, so it gets one of those.
+            const auto steps = static_cast<float> (p->getNumSteps() - 1);
+            const auto v = random.nextFloat();
+            p->setValueNotifyingHost (p->isDiscrete() && steps > 0.0f && steps < 1000.0f ? std::round (v * steps) / steps : v);
+        }
+        juce::MemoryBlock state;
+        saved.getStateInformation (state);
+
+        PluginProcessor restored;
+        restored.setStateInformation (state.getData(), static_cast<int> (state.getSize()));
+        for (int i = 0; i < saved.getParameters().size(); ++i)
+        {
+            const auto before = saved.getParameters()[i]->getValue(), after = restored.getParameters()[i]->getValue();
+            if (! juce::exactlyEqual (before, after))
+            {
+                FAIL_CHECK (saved.getParameters()[i]->getName (32) << ": " << before << " became " << after);
+                break;
+            }
+        }
+    }
+}

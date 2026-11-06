@@ -6,7 +6,7 @@ the kick in your track with knobs, like on a subtractive synth.
 ## Status
 Very early. Kikkuh plays a synthesized kick that you shape on one printed panel of knobs, in the order of the signal. You can
 hear it without MIDI, with a hit pad and a loop in your host's tempo. Its defaults are the sound chosen by ear in blind rounds.
-Click, Top, Master and Rumble come next.
+Click and Top layer a tone or noise over it; your own samples, Master and Rumble come next.
 Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 
 ## What works today
@@ -24,6 +24,8 @@ Plan in `BACKLOG.md`, handoff in `STATE.md`, scope in `specs/PRD.md`.
 - Attack, Hold, Decay and Shape set the level.
 - Drive clips the kick hard after the amp, oversampled and still at zero reported latency.
 - A 24 dB low-pass with Cutoff, Resonance and Env Amount follows the drive.
+- Click and Top, two equal sections below the body, layer a tone or noise over the kick, each with Level, Decay, Tune,
+  High-pass and Low-pass. Both start Off, so the kick and your older projects sound as before.
 - All knobs are automatable and smoothed, and they come back with your project; a project saved before the new
   defaults keeps its sound.
 - `kikkuh-render` writes a kick to a WAV without a DAW, for example

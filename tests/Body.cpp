@@ -1568,7 +1568,7 @@ TEST_CASE ("eng_06a_a_state_without_parameters_gives_defaults")
 TEST_CASE ("eng_06b_parameter_ids_and_defaults_are_as_specified")
 {
     PluginProcessor plugin;
-    CHECK (plugin.getParameters().size() == static_cast<int> (knobIds.size()));
+    CHECK (plugin.getParameters().size() == static_cast<int> (knobIds.size()) + 12); // and LAYER's twelve, tests/Layer.cpp
 
     const std::map<juce::String, float> defaults {
         { "body_wave", 0.0f }, { "body_tune", static_cast<float> (noteA0) }, { "body_pitch_amount", 60.0f },

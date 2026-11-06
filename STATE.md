@@ -40,6 +40,4 @@ clap-validator warns that scanning takes 410 ms against its 100 ms guideline; no
 
 ## Owner decisions open
 - Is tuning between notes worth a Fine knob (IDEA-03)? Proposed: after v1.
-- Transient designer for the attack (IDEA-06)? Proposed: after v1.
-- MASTER at the bottom right, and the panel grows rather than folds (IDEA-07)? Proposed: settled in the slice 3 spec.
 - Other DAWs for testing (SELL-07, X-01): only Bitwig for now, needed by VS6-03 before release.

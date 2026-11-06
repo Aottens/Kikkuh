@@ -1,10 +1,13 @@
 # Kikkuh — State
 
-_Last updated: 2026-11-06 (VS2-01, VS2-04, owner run)_
+_Last updated: 2026-11-06 (VS2-02)_
 
 This file is the handoff: where we are, what is next, what waits. It is not a log.
 
 ## Current focus
+VS2-02 is built: drag your own WAV, AIFF or FLAC onto CLICK or TOP (LAYER-04, approved with every recommendation). It is
+read off the audio thread, played through the noise's sinc kernel with Start and Tune, and held inside the saved state, so
+the file is not needed after the drop; the state version stays 3. It waits for the owner's run (`tests/manual/vs2-02-own-sample.md`).
 Slice 2 has started: Click and Top (`specs/modules/layer.md`, approved with every recommendation) play a tone or noise in
 parallel over the body, through a 12 dB high- and low-pass and a Decay envelope, on a second band of the panel. Both start
 Off, so the kick and saved projects are unchanged and the state version stays 3. The tests found a setting that makes
@@ -24,12 +27,13 @@ The tail anchor is on by default: pitch knobs leave the tail sample-identical, S
 clap-validator warns that scanning takes 410 ms against its 100 ms guideline; not a failure, watch it.
 
 ## Next
-1. VS2-02: your own sample by drag and drop, with Start; write LAYER-04's criteria first (gate 1). It is an L, a build of its own.
+1. The owner's VS2-02 run in Bitwig (gate 3, below).
 2. VS2-03 after it: the owner's CORE-01 re-run on all four references; the Bitwig project `CORE-01` is kept for it.
    Tests that read the bare voice use `BarePlugin` in `tests/Body.cpp`; tests of a layer alone subtract a render with both
    sections Off (`layer` in `tests/Layer.cpp`).
 
 ## Waiting for a run in Bitwig (gate 3, owner)
+- VS2-02: `tests/manual/vs2-02-own-sample.md`. Its step 7 is the question VS2-01 left: does your own sample give TOP a use?
 - VS1-04: `tests/manual/vs1-04-tail-anchor.md`. Its step 2 is the main question: does the bend cost the chosen kick anything?
 - VS1-03: `tests/manual/vs1-03-drive-filter.md`. Written for Drive default 0: on this build its step 2 no longer holds
   (the defaults changed on purpose) and step 6 has more new knobs; to test it as written, run it with Drive set to 0 first.

@@ -9,7 +9,8 @@ constexpr const char* paramIds[] = { "body_wave", "body_tune", "body_pitch_amoun
                                      "body_sweep2_amount", "body_sweep2_decay", "body_start",
                                      "play_velocity", "play_key_track", "body_tail_anchor",
                                      "click_source", "click_level", "click_tune", "click_decay", "click_hp", "click_lp",
-                                     "top_source", "top_level", "top_tune", "top_decay", "top_hp", "top_lp" };
+                                     "top_source", "top_level", "top_tune", "top_decay", "top_hp", "top_lp",
+                                     "click_start", "top_start" };
 }
 
 // C3 = 60. Takes "F#0", "C1", "Bb2" or a plain MIDI note number.
@@ -41,6 +42,18 @@ PluginProcessor::PluginProcessor()
     // The wavetables take a moment to build: do it here, never on the audio thread.
     dsp::MorphOsc::warmUp();
     dsp::LayerVoice::warmUp();
+}
+
+PluginProcessor::~PluginProcessor()
+{
+    loader.removeAllJobs (true, 10000);
+    cancelPendingUpdate();
+    for (size_t i = 0; i < 2; ++i)
+    {
+        delete pendingSample[i].load();
+        delete retiredSample[i].load();
+        delete currentSample[i];
+    }
 }
 
 juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayout()
@@ -108,7 +121,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
     {
         const bool isClick = juce::String (prefix) == "click";
         const juce::String id (prefix), name (isClick ? "Click " : "Top ");
-        layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { id + "_source", 1 }, name + "Source", juce::StringArray { "Tone", "Noise" }, isClick ? 0 : 1));
+        layout.add (std::make_unique<juce::AudioParameterChoice> (juce::ParameterID { id + "_source", 1 }, name + "Source", juce::StringArray { "Tone", "Noise", "Sample" }, isClick ? 0 : 1));
         layout.add (std::make_unique<Float> (juce::ParameterID { id + "_level", 1 }, name + "Level", ranged (-60.0f, 6.0f), -60.0f,
                                              Attributes().withLabel ("dB")
                                                  .withStringFromValueFunction ([] (float v, int) { return v < -59.95f ? juce::String ("Off") : juce::String (v, 1).replace ("-0.0", "0.0"); })
@@ -117,13 +130,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout PluginProcessor::createLayou
         add ((id + "_decay").toRawUTF8(), (name + "Decay").toRawUTF8(), ranged (1.0f, 2000.0f, 50.0f), isClick ? 4.0f : 30.0f, "ms", 1);
         add ((id + "_hp").toRawUTF8(), (name + "High-pass").toRawUTF8(), ranged (20.0f, 20000.0f, 632.0f), isClick ? 20.0f : 1000.0f, "Hz", 0);
         add ((id + "_lp").toRawUTF8(), (name + "Low-pass").toRawUTF8(), ranged (20.0f, 20000.0f, 632.0f), 20000.0f, "Hz", 0);
+        add ((id + "_start").toRawUTF8(), (name + "Start").toRawUTF8(), ranged (0.0f, 1000.0f, 50.0f), 0.0f, "ms", 1);
     }
     return layout;
 }
 
-dsp::LayerParams PluginProcessor::readLayer (size_t first) const
+dsp::LayerParams PluginProcessor::readLayer (size_t first, size_t start) const
 {
-    return { raw[first]->load(), raw[first + 1]->load(), raw[first + 2]->load(), raw[first + 3]->load(), raw[first + 4]->load(), raw[first + 5]->load() };
+    return { raw[first]->load(), raw[first + 1]->load(), raw[first + 2]->load(), raw[first + 3]->load(), raw[first + 4]->load(), raw[first + 5]->load(),
+             raw[start]->load() };
 }
 
 dsp::BodyParams PluginProcessor::readParams() const
@@ -138,8 +153,8 @@ void PluginProcessor::prepareToPlay (double newRate, int)
 {
     voice.setParams (readParams());
     voice.prepare (newRate);
-    click.setParams (readLayer (19));
-    top.setParams (readLayer (25));
+    click.setParams (readLayer (19, 31));
+    top.setParams (readLayer (25, 32));
     click.prepare (newRate);
     top.prepare (newRate);
     sampleRate = newRate;
@@ -168,8 +183,8 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     juce::ScopedNoDenormals noDenormals;
     buffer.clear();
     voice.setParams (readParams());
-    click.setParams (readLayer (19));
-    top.setParams (readLayer (25));
+    click.setParams (readLayer (19, 31));
+    top.setParams (readLayer (25, 32));
 
     auto render = [&] (int start, int end) {
         for (int i = start; i < end; ++i)
@@ -184,8 +199,8 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     const auto live = ! isNonRealtime();
     const auto kick = [&] (float level, int note) {
         voice.trigger (level, note);
-        click.trigger (level);
-        top.trigger (level);
+        click.trigger (level, takeSample (0));
+        top.trigger (level, takeSample (1));
         ++kicks;
     };
     if (padPressed.exchange (false) && live)
@@ -224,6 +239,122 @@ void PluginProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     render (position, buffer.getNumSamples());
 }
 
+// LAYER-04b: a new sample is taken at a note-on, so a ringing layer keeps the one it started with. Nothing is freed here.
+const dsp::LayerSample* PluginProcessor::takeSample (size_t section)
+{
+    if (retiredSample[section].load() == nullptr)
+        if (auto* next = pendingSample[section].exchange (nullptr))
+        {
+            retiredSample[section].store (currentSample[section]);
+            currentSample[section] = next;
+        }
+    return currentSample[section];
+}
+
+bool PluginProcessor::canLoadSample (const juce::File& file)
+{
+    return file.hasFileExtension ("wav;aif;aiff;flac");
+}
+
+bool PluginProcessor::loadSample (int section, const juce::StringArray& paths)
+{
+    juce::Array<juce::File> files;
+    for (const auto& path : paths)
+        if (canLoadSample (juce::File (path)))
+            files.add (juce::File (path));
+    if (files.isEmpty())
+        return false;
+
+    ++loadsInFlight;
+    loader.addJob ([this, section, files] {
+        Loaded result;
+        result.section = section;
+        result.name = files[0].getFileName();
+        juce::AudioFormatManager formats;
+        formats.registerBasicFormats();
+        for (const auto& file : files)
+            if (const std::unique_ptr<juce::AudioFormatReader> reader (formats.createReaderFor (file)); reader != nullptr && reader->sampleRate > 0.0)
+            {
+                // LAYER-04: mono as the mean of the channels, at the file's own rate, cut at 3 s.
+                const auto length = static_cast<int> (std::min<juce::int64> (reader->lengthInSamples, juce::roundToInt (3.0 * reader->sampleRate)));
+                const auto channels = static_cast<int> (reader->numChannels);
+                juce::AudioBuffer<float> buffer (channels, juce::jmax (length, 1));
+                if (length > 0 && reader->read (&buffer, 0, length, 0, true, true))
+                {
+                    result.data.assign (static_cast<size_t> (length), 0.0f);
+                    for (int ch = 0; ch < channels; ++ch)
+                        for (int i = 0; i < length; ++i)
+                            result.data[static_cast<size_t> (i)] += buffer.getSample (ch, i) / static_cast<float> (channels);
+                    result.ok = true;
+                    result.name = file.getFileName();
+                    result.rate = reader->sampleRate;
+                    break;
+                }
+            }
+        {
+            const juce::ScopedLock lock (loadedLock);
+            loaded.push_back (std::move (result));
+        }
+        if (juce::MessageManager::getInstanceWithoutCreating() != nullptr) // none in a test or a render tool: waitForSampleLoads publishes
+            triggerAsyncUpdate();
+        --loadsInFlight;
+    });
+    return true;
+}
+
+void PluginProcessor::waitForSampleLoads()
+{
+    while (loadsInFlight > 0)
+        juce::Thread::sleep (1);
+    cancelPendingUpdate();
+    handleAsyncUpdate(); // not through the message loop: a caller without one (a test, a render tool) would never see it
+}
+
+juce::String PluginProcessor::getSampleText (int section) const
+{
+    const juce::ScopedLock lock (heldLock);
+    return held[static_cast<size_t> (section)].text;
+}
+
+// Message thread: a finished load becomes the section's sample and sets its Source and, at Off, its Level.
+void PluginProcessor::handleAsyncUpdate()
+{
+    std::vector<Loaded> done;
+    {
+        const juce::ScopedLock lock (loadedLock);
+        done.swap (loaded);
+    }
+    for (auto& result : done)
+    {
+        const auto prefix = result.section == 0 ? "click" : "top";
+        if (! result.ok)
+        {
+            const juce::ScopedLock lock (heldLock);
+            held[static_cast<size_t> (result.section)].text = "Cannot read " + result.name;
+            continue;
+        }
+        publishSample (result.section, result.name, std::move (result.data), result.rate, result.name);
+        auto* source = apvts.getParameter (juce::String (prefix) + "_source");
+        source->setValueNotifyingHost (source->convertTo0to1 (2.0f));
+        auto* level = apvts.getParameter (juce::String (prefix) + "_level");
+        if (level->convertFrom0to1 (level->getValue()) < -59.95f)
+            level->setValueNotifyingHost (level->convertTo0to1 (-6.0f));
+    }
+}
+
+// Message thread. An empty `data` clears the section: the audio thread plays silence.
+void PluginProcessor::publishSample (int section, const juce::String& name, std::vector<float> data, double rate, const juce::String& text)
+{
+    const auto s = static_cast<size_t> (section);
+    auto* audio = new dsp::LayerSample { data, rate };
+    {
+        const juce::ScopedLock lock (heldLock);
+        held[s] = { name, text, std::move (data), rate };
+    }
+    delete retiredSample[s].exchange (nullptr);
+    delete pendingSample[s].exchange (audio); // one the audio thread never took
+}
+
 bool PluginProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
     const auto& out = layouts.getMainOutputChannelSet();
@@ -246,6 +377,18 @@ void PluginProcessor::getStateInformation (juce::MemoryBlock& destData)
         if (auto* value = apvts.getRawParameterValue (param->getStringAttribute ("id")))
             param->setAttribute ("value", juce::String::formatted ("%.9g", static_cast<double> (value->load())));
     xml.addChildElement (params.release());
+
+    // LAYER-04g: each section's sample goes with the project, as base64 of its little-endian float32 audio.
+    const juce::ScopedLock lock (heldLock);
+    for (size_t i = 0; i < 2; ++i)
+        if (! held[i].data.empty())
+        {
+            auto* child = xml.createNewChildElement ("Sample");
+            child->setAttribute ("section", i == 0 ? "click" : "top");
+            child->setAttribute ("name", held[i].name);
+            child->setAttribute ("rate", held[i].rate);
+            child->setAttribute ("data", juce::Base64::toBase64 (held[i].data.data(), held[i].data.size() * sizeof (float)));
+        }
     copyXmlToBinary (xml, destData);
 }
 
@@ -267,6 +410,29 @@ void PluginProcessor::setStateInformation (const void* data, int sizeInBytes)
             if (auto* p = apvts.getParameter (param->getStringAttribute ("id")))
                 if (const auto value = static_cast<float> (param->getDoubleAttribute ("value")); ! juce::exactlyEqual (p->convertFrom0to1 (p->getValue()), value))
                     p->setValueNotifyingHost (p->convertTo0to1 (value));
+
+    // LAYER-04g/h: the samples; one that cannot be decoded clears its section and the rest of the state loads on.
+    for (size_t i = 0; i < 2; ++i)
+    {
+        auto* child = xml->getChildByAttribute ("section", i == 0 ? "click" : "top");
+        if (child == nullptr || ! child->hasTagName ("Sample"))
+        {
+            publishSample (static_cast<int> (i), {}, {}, 0.0, "Drop a sample");
+            continue;
+        }
+        const auto name = child->getStringAttribute ("name");
+        juce::MemoryOutputStream bytes;
+        std::vector<float> samples;
+        const auto rate = child->getDoubleAttribute ("rate");
+        if (juce::Base64::convertFromBase64 (bytes, child->getStringAttribute ("data")) && bytes.getDataSize() > 0
+            && bytes.getDataSize() % sizeof (float) == 0 && rate > 0.0)
+        {
+            samples.resize (bytes.getDataSize() / sizeof (float));
+            std::memcpy (samples.data(), bytes.getData(), bytes.getDataSize());
+        }
+        const auto text = samples.empty() ? "Missing: " + name : name;
+        publishSample (static_cast<int> (i), name, std::move (samples), rate, text);
+    }
 }
 
 void PluginProcessor::migrate (juce::XmlElement& xml, int fromVersion)
@@ -290,6 +456,8 @@ void PluginProcessor::migrate (juce::XmlElement& xml, int fromVersion)
     // v2 (BODY-08..10): the defaults changed, so a project saved earlier keeps the sound it had.
     if (fromVersion < 2)
         addMissing ({ "body_sweep2_amount", "body_start", "body_drive" });
+    // VS2-02: Start did not exist, and 0 is its default.
+    addMissing ({ "click_start", "top_start" });
     // v3 (BODY-07): the same for the tail anchor, which is on by default.
     if (fromVersion < 3)
         addMissing ({ "body_tail_anchor" });

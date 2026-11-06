@@ -181,7 +181,7 @@ public:
             const juce::String id (prefix);
             const std::tuple<const char*, const char*, int, int, Knob::Size> layer[] = {
                 { "_level", "Level", 0, 70, S::large }, { "_decay", "Decay", 1, 70, S::large }, { "_hp", "High-pass", 2, 70, S::large },
-                { "_lp", "Low-pass", 3, 70, S::large }, { "_tune", "Tune", 1, 216, S::little } };
+                { "_lp", "Low-pass", 3, 70, S::large }, { "_tune", "Tune", 1, 216, S::little }, { "_start", "Start", 2, 216, S::little } };
             for (const auto& [suffix, label, column, top, size] : layer)
             {
                 auto& knob = *knobs.emplace_back (std::make_unique<Knob> (state, id + suffix, label, size));
@@ -190,11 +190,28 @@ public:
             }
             auto& source = id == "click" ? clickSource : topSource;
             source.setBounds (x0 - 39, 239 + bandOffset, 78, 32);
-            source.attachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (state, id + "_source", source);
             source.choice = dynamic_cast<juce::AudioParameterChoice*> (state.getParameter (id + "_source"));
+            source.onClick = [choice = source.choice] // Tone, Noise, Sample and round again: three steps, which a ButtonAttachment cannot make
+            {
+                choice->beginChangeGesture();
+                choice->setValueNotifyingHost (choice->convertTo0to1 (static_cast<float> ((choice->getIndex() + 1) % choice->choices.size())));
+                choice->endChangeGesture();
+            };
             addAndMakeVisible (source);
+
+            auto& name = id == "click" ? clickName : topName; // LAYER-04l: the sample's name or message, under Low-pass
+            name.setComponentID (id + "_sample");
+            name.setTitle (id == "click" ? "Click Sample" : "Top Sample");
+            name.setBounds (x0 + 252 - 39, 239 + bandOffset, 78, 32);
+            name.setJustificationType (juce::Justification::centred);
+            name.setMinimumHorizontalScale (1.0f); // cut with an ellipsis, never squeezed
+            name.setInterceptsMouseClicks (false, false);
+            name.setColour (juce::Label::textColourId, colour (panel::print));
+            name.setFont (lf.font (PanelLookAndFeel::Cut::value, 13.0f));
+            addAndMakeVisible (name);
         }
 
+        refresh (p);
         pad.setBounds (22, 82, 160, 67);
         pad.onClick = [&p] { p.pressPad(); };
         loop.setBounds (22, 157, 160, 32);
@@ -221,6 +238,9 @@ public:
         for (auto* s : { &clickSource, &topSource })
             if (const auto name = s->choice->getCurrentChoiceName(); name != s->getButtonText())
                 s->setButtonText (name);
+        for (const auto& [name, section] : { std::pair { &clickName, 0 }, std::pair { &topName, 1 } })
+            if (const auto text = p.getSampleText (section); text != name->getText())
+                name->setText (text, juce::dontSendNotification);
         if (const auto kicks = p.getKickCount(); kicks != std::exchange (lastKicks, kicks))
             pad.flash.trigger();
         if (const auto hits = p.getLoopHitCount(); hits != std::exchange (lastLoopHits, hits))
@@ -298,6 +318,7 @@ private:
     Pad pad;
     Switch loop, keyTrack, tailAnchor, clickSource, topSource;
     TailReadout tail;
+    juce::Label clickName, topName;
     int lastKicks, lastLoopHits;
 };
 
@@ -327,6 +348,18 @@ void PanelEditor::resized()
 {
     plugin.setPanelWidth (getWidth());
     stage->setTransform (juce::AffineTransform::scale (static_cast<float> (getWidth()) / stageWidth));
+}
+
+bool PanelEditor::isInterestedInFileDrag (const juce::StringArray& files)
+{
+    return std::any_of (files.begin(), files.end(), [] (const auto& f) { return PluginProcessor::canLoadSample (juce::File (f)); });
+}
+
+void PanelEditor::filesDropped (const juce::StringArray& files, int x, int y)
+{
+    const auto scale = static_cast<double> (stageWidth) / getWidth(); // editor pixels to stage points
+    if (y * scale >= bandOffset) // the first band loads nothing
+        plugin.loadSample (x * scale < 556 ? 0 : 1, files); // 556: the line between CLICK and TOP
 }
 
 void PanelEditor::timerCallback()

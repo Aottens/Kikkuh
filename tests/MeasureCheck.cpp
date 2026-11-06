@@ -15,6 +15,7 @@ TEST_CASE ("harn_01_measurements_read_known_signals")
     CHECK (measure::peak (sine) == Catch::Approx (0.5f).epsilon (0.001));
     CHECK (measure::frequency (sine, rate, 0.1, 0.4) == Catch::Approx (55.0).epsilon (0.001));
     CHECK (measure::largestStep (sine) < 0.01f);
+    CHECK (measure::rmsBetween (sine, rate, 0.1, 0.4) == Catch::Approx (0.5 / std::sqrt (2.0)).epsilon (0.001));
 
     sine[1000] += 0.5f;
     CHECK (measure::largestStep (sine) > 0.4f);

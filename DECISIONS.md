@@ -4,6 +4,21 @@ Append-only. Newest at top. Each entry: date, decision, alternatives, why, rever
 
 ---
 
+## 2026-11-06 — Your own sample is held in the project, not found by its path (VS2-02, owner)
+
+**Decision:** a sample dropped on CLICK or TOP is read on a background thread (WAV, AIFF or FLAC), summed to mono, kept at its
+own rate and cut at 3 s, and its audio goes into the saved state as 32-bit float with its name. The audio thread takes a new
+sample at the next note-on, and the replaced one is freed off it. It plays through the sinc kernel the noise uses, without
+band-limiting when Tune speeds it up. A drop on a section at Level Off sets -6 dB. The state version stays 3.
+
+**Alternatives considered:** keeping a path, which breaks when a project moves to another machine; more formats (MP3, Ogg),
+which differ between macOS and Windows; band-limited reading by rate; a longer limit.
+
+**Reasoning:** PRD LAYER-04 says the samples are saved with the project and a missing file never breaks it; holding the audio
+makes the file unneeded after the drop. 3 s covers Start plus Decay at their maximum, at most about 3 MB per section.
+
+**Reversal trigger:** states grow too large for a host, or the owner hears aliasing at high Tune.
+
 ## 2026-11-05 — A reloaded state is exact, fixed in our code rather than worked around (VS2-01)
 
 **Decision:** three causes made a reloaded parameter come back an ulp off, which clap-validator failed on once slice 2

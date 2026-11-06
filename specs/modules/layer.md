@@ -1,7 +1,7 @@
 # Module spec: layer (LAYER), the CLICK and TOP sections
 
 Status: **approved by the owner (2026-11-05), with every recommendation: Tone and Noise only, Start with VS2-02, 12 dB filters, mono.** Scope: LAYER-01..03 and the panel row, built by VS2-01 and VS2-04;
-LAYER-04 and the Sample source come with VS2-02 and get their full criteria when it starts.
+LAYER-04 and the Sample source come with VS2-02. **LAYER-04 approved by the owner (2026-11-06), with every recommendation: the sample held in the state, WAV, AIFF and FLAC, 3 s, the noise's sinc kernel, -6 dB on a drop at Off.**
 
 CLICK and TOP are two identical sections, one class in `source/dsp/` used twice, that play in parallel over the body.
 Only their defaults differ. They are what the owner's runs left to them:
@@ -39,8 +39,7 @@ Built in, generated, no factory samples (SELL-06 stays simple):
 - **Tone**: a sine at `3000 Hz * 2^(Tune/12)`, starting at phase 0, as the VS1-09 sketch played it.
 - **Noise**: white noise from a fixed table made at 48 kHz, played at the rate `2^(Tune/12)`, as a sampler plays a
   noise sample: up brightens it, down darkens it. Every note plays the same stretch, so ENG-03 holds.
-- **Sample** (VS2-02): your own file, dragged onto the section; played at `2^(Tune/12)`. Until VS2-02 the choice does not
-  exist.
+- **Sample** (VS2-02): your own file, dragged onto the section, played from Start at the rate `2^(Tune/12)` (LAYER-04).
 
 ## Parameters
 
@@ -49,15 +48,15 @@ Ids are permanent once released (ENG-06). Each id below exists twice: once with 
 
 | Id (after the prefix) | Knob | Range | Default CLICK | Default TOP | Knob feel |
 | --- | --- | --- | --- | --- | --- |
-| `source` | Source | Tone, Noise (VS2-02 adds Sample) | Tone | Noise | switch, read at the note-on |
+| `source` | Source | Tone, Noise, Sample | Tone | Noise | switch, read at the note-on |
 | `level` | Level | Off, -60..+6 dB | Off | Off | linear in dB; the bottom position is Off |
 | `tune` | Tune | -24..+24 semitones | 0 | 0 | linear, continuous |
 | `decay` | Decay | 1..2000 ms | 4 ms | 30 ms | centre at 50 ms |
 | `hp` | High-pass | 20..20000 Hz | 20 Hz | 1000 Hz | centre at 632 Hz |
 | `lp` | Low-pass | 20..20000 Hz | 20000 Hz | 20000 Hz | centre at 632 Hz |
-| `start` (VS2-02) | Start | 0..1000 ms into the source | 0 | 0 | centre at 50 ms |
+| `start` | Start | 0..1000 ms into the sample | 0 | 0 | centre at 50 ms; read at the note-on |
 
-Start comes with the Sample source in VS2-02: on a generated source it has nothing worth skipping.
+Start comes with the Sample source in VS2-02 and acts on it only: on a generated source it has nothing worth skipping.
 
 ## Curve: Decay
 
@@ -127,8 +126,51 @@ After Decay the section is silent. A Sample also stops at its own end.
 
 ### LAYER-04 Your own sample (VS2-02)
 
-Criteria come when VS2-02 starts: loading off the audio thread with a snapshot swap, the file saved with the project, a
-missing file giving silence and a message, and the Start knob.
+A sample is a file of the owner's, held whole in the project: once dropped, the file itself is no longer needed. It is
+summed to mono (the mean of its channels), kept at its own sample rate and cut at 3 s, which covers Start (up to 1 s)
+plus Decay (up to 2 s). It is not normalised: Level works on the file as it is.
+
+- **LAYER-04a** Drag and drop: a WAV, AIFF or FLAC file dropped on the CLICK or TOP part of the panel's second band
+  loads into that section and sets its Source to Sample; if its Level is Off, Level goes to -6 dB, so a drop is heard.
+  Other files are refused while they are dragged. Of several files the first readable one loads. The panel shows the
+  file's name in the empty place under Low-pass (LAYER-04l).
+- **LAYER-04b** Loading is off the audio thread: reading, summing and cutting run on a background thread, and the finished
+  sample reaches the audio thread by a snapshot swap, taken at the next note-on, so a ringing layer finishes on the sample
+  it started with. The replaced sample is freed off the audio thread. ENG-01d: `processBlock` neither allocates nor frees
+  (the allocation guard counts frees too) while samples are dropped and replaced 20 times during a run of retriggers.
+- **LAYER-04c** Playback: on Sample, Tune 0, Start 0, Decay 2000 ms, filters open and Level 0 dB, a 1 kHz sine file at the
+  host's rate plays at 1 kHz within 0.5 % with its peak within 0.5 dB of the file's, and a stereo file plays the mean of
+  its channels within 1e-4 per sample. The file is read with the sinc kernel the noise uses.
+- **LAYER-04d** Tune is the playback rate: a 1 kHz sine file at 48 kHz measures 1000, 2000 and 500 Hz at Tune 0, +12 and
+  -12, within 0.5 %, at host rates of 44.1, 48 and 192 kHz; the same sine in a 44.1 kHz file measures the same. At +12
+  the file ends in half its length, at -12 in twice it.
+- **LAYER-04e** Start: the layer begins Start ms into the file, counted in the file's own time, whatever Tune says. A
+  file with a one-sample impulse at 100 ms and Start 100 ms puts the impulse's peak on the note's own sample, within one
+  sample. A Start past the file's end gives silence. Start is read at the note-on, as Source (LAYER-01f), so it is not
+  smoothed: moving it while a layer rings leaves that layer sample-identical, and the next note follows it. On Tone and
+  Noise it changes nothing: Start 0 and 1000 ms render sample-identically. ENG-01e: Start shows one decimal, in ms.
+- **LAYER-04f** The end does not click: the layer stops at Decay or at the end of the file, whichever comes first, and at
+  the file's end its last value fades with PLAY-03's 3 ms time constant. A file that ends at full scale keeps the largest
+  step there below 0.05.
+- **LAYER-04g** Saved with the project: the state holds each section's sample (its mono audio as 32-bit float, its rate
+  and its file name). A reloaded state renders sample-identically to before saving, also after the file is deleted.
+  At most 3 s at 192 kHz, about 3 MB of state per section.
+- **LAYER-04h** A missing sample never breaks the project: a file that cannot be read (damaged, empty, not audio) leaves
+  the section as it was, and the panel shows "Cannot read" with the name. Source Sample without a sample (switched to
+  before any drop, or a state whose sample is damaged or absent) renders silence, sample-identical to Level Off, and the
+  panel shows "Drop a sample" or "Missing:" with the saved name. The rest of the state always loads.
+- **LAYER-04i** ENG-03 and ENG-04 hold on Sample: the same note renders identically twice, across block sizes; with a
+  48 kHz file of white noise the layer's RMS level and `bands` stay within 1 dB and 3 percentage points between host rates
+  of 44.1, 48, 96 and 192 kHz (energy above 20 kHz left out). (Corrected in VS2-02: the first wording used the peak, which
+  on noise read between its samples rises by 1.3 dB at 96 and 192 kHz, as any band-limited reading does.)
+- **LAYER-04j** Saved projects keep their sound (ENG-06a), and the state version stays 3: a state without the Start ids
+  or a sample, any version, renders sample-identically to before, because Start defaults to 0 and no older state can
+  choose Sample. Source stores its choice's index, so Tone and Noise come back as they were; a host's automation of
+  Source, which works on 0..1, moves Noise from 1 to 0.5, which is allowed before the first release.
+- **LAYER-04k** ENG-06b: the id test lists the two Start ids, `click_start` and `top_start`.
+- **LAYER-04l** The panel (FAST-05 holds): Start is an S knob in the empty place under High-pass (CLICK x 420, TOP x 776,
+  the bottom row), the sample's name or message is printed under Low-pass (x 504 and 860, one line, cut with an ellipsis),
+  and the Source switch steps Tone, Noise, Sample. The panel changes, so CORE-01 runs again: VS2-03.
 
 ## The panel (VS2-04)
 
@@ -146,11 +188,11 @@ Each section has four columns 84 points apart, L knobs on top and the bottom row
 | 4 | 504 | 860 | Low-pass | |
 
 Labels: Level, Decay, High-pass, Low-pass, Source, Tune. Values as FAST-05j: dB with "Off" at the bottom, ms, Hz and from
-1000 Hz up kHz as Cutoff, semitones. Start takes the empty place under High-pass when it arrives in VS2-02. The panel
+1000 Hz up kHz as Cutoff, semitones. Start takes the empty place under High-pass in VS2-02, and the sample's name the place under Low-pass (LAYER-04l). The panel
 changes, so CORE-01 is run again: VS2-03, after VS2-02.
 
 ## Engineering, as it applies to LAYER
 
-- **ENG-06b** The id test lists the twelve ids of VS2-01, and VS2-02 adds the two Start ids.
+- **ENG-06b** The id test lists the twelve ids of VS2-01, and VS2-02 adds the two Start ids (LAYER-04k).
 - **ENG-03, ENG-04** hold with both layers on, at non-default values.
 - The section is plain C++ in `source/dsp/` without JUCE; the processor only reads its knobs and adds its output.

@@ -40,7 +40,7 @@ Builds (owner, 2026-11-05): VS2-01 with VS2-04 (M + S: FAST-05a fails while a pa
 | Id | Task (one sentence, verifiable) | Spec ids | Size | Status |
 | --- | --- | --- | --- | --- |
 | VS2-01 | Click and Top run in parallel over the body with built-in sources and their knobs, from one shared section class. | LAYER-01..03 | M | done (2026-11-06, #12) |
-| VS2-02 | Dragging in your own sample works, loads off the audio thread and comes back with the project; a missing file gives silence and a message. | LAYER-01, 04 | L | todo |
+| VS2-02 | Dragging in your own sample works, loads off the audio thread and comes back with the project; a missing file gives silence and a message. | LAYER-01, 04 | L | gate3: `tests/manual/vs2-02-own-sample.md` |
 | VS2-04 | CLICK and TOP stand on a second row of the panel, and FAST-05's tests hold for it. | FAST-05, LAYER-02 | S | done (2026-11-06, #12) |
 | VS2-03 | Owner run in Bitwig: CORE-01 on all four references with Click and Top, and Beefy SM ELE, missed in VS1-07, is usable within 3 minutes or its findings become rows. | CORE-01 | S | todo |
 
